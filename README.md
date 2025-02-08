@@ -8,6 +8,10 @@ This is what the opening TUI looks like when you run it with `./ch1.pages`:
 
 ![TUI](UNIXToolsScreenShot.png)
 
+Some TUI screens include demos and "easter eggs" that run when you press `d` for `demo`.
+
+Pressing `u` for `update` does not work, because the course materials are no longer posted online where `wget` expects them.
+
 ## Viewing and interacting with the TUI presentations
 
 I wrote this series of lectures for undergraduate computer science students in 2018.  The material is based on *"Linux Commands, Editors, and Shell Programming"* by Mark Sobell, 3rd edition, 2012, Prentice Hall.
@@ -32,10 +36,6 @@ There is a TUI script for each chapter and subject:
 | `ch14.pages` | 14 - how to use AWK    |
 | `ch15.pages` | 15 - how to use SED    |
 | `gdb.pages`  | extra - how to use GDB |
-
-Some TUI pages include demos.  These are "easter eggs" that run when you press `d` for `demo`.
-
-Pressing `u` for `update` does not work, because the course materials are no longer posted online where `wget` expects them.
 
 ## How does it work?
 
