@@ -12,7 +12,7 @@ This is what the opening TUI looks like when you run it with `./ch1.pages`:
 
 I wrote this series of lectures for undergraduate computer science students in 2018.  The material is based on *"Linux Commands, Editors, and Shell Programming"* by Mark Sobell, 3rd edition, 2012, Prentice Hall.
 
-- download this repo and change dir to it
+- download this repo and change dir to the `learn` directory
 - execute `./ch1.pages` to view the first chapter
 - if the TUI screen looks garbled, then exit the TUI and make sure your `TERM` environment variable is set to `ansi` or `xterm` by executing `export TERM=ansi` in bash or`setenv TERM ansi` in csh or tcsh
 
