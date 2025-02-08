@@ -1,0 +1,62 @@
+Total Points: 100
+COP4342 – UNIX Tools
+Assignment #3: A Simple Unix Shell
+
+Instructor: Dr. Robert Van Engelen Teaching Assistant: Imran Chowdhury
+
+Spring 2018
+
+Description: The bash shell utility on UNIX and UNIX-based platforms is a command-line shell to access the resources
+of the operating system via built-in commands, by starting processes to run programs and utilities.
+Assignment: In this programming assignment, you will implement a customized simplified version of a Unix Shell
+called “cssh”. There are no built-in programming structures or variables in cssh. The cssh shell program should be
+able to:
+•
+•
+•
+•
+
+Execute programs that are in the current directory or on the $PATH environment variable and that are
+compiled executables (object files) with permission ‘x’ set, and handle IO redirects for programs.
+Pass arguments that are separated by spaces and string arguments quoted with single ’-quotes, such as
+’this is a single argument’, to commands.
+Exit on the ``exit’’ command.
+Change directory with the ``cd’’ command.
+
+Command line options: In your “cssh”, it must support the following forms of basic commands:
+./program ARG1 ARG2 …
+ls DIR
+exit
+cd DIR
+< FILE and > FILE
+
+Execute program (with permission ‘x’), arguments are passed to it
+Execute /bin/ls with DIR argument (ls is on $PATH)
+Exit from “cssh”
+Change directory to DIR
+Handle IO redirects with < and/or > (space between < or > and FILE)
+
+Exit code: the “cssh” should exit with EXIT_SUCCESS after the “exit” command (its arguments can be ignored).
+Helpful reading: to understand the system calls that you will need to make in the C/C++ code for this assignment,
+which are fork(2), wait(2), execlp(3), execvp(3), signal(3), open(2), close(2), dup(2), dup2(2), please read this first:
+http://www.cs.fsu.edu/~engelen/courses/COP4342/unix_ch7.pdf
+Sample C code: To read shell input from the keyboard, we use readline(3) which is installed on Linux and most Unix
+systems. It is not available in Visual studio out-of-the-box, so when developing code in Visual Studio use read(2)
+instead. Here is some sample code on how to read input with readline(3) and tokenize the string into string tokens
+separated by white space using strtok(3):
+#include
+#include
+#include
+#include
+#include
+
+<stdio.h>
+<stdlib.h>
+<string.h>
+<readline/readline.h>
+<readline/history.h>
+
+static const char prompt[] = "cssh> ";
+static const char sep[] = " \t\n\r"; // word separators
+
+

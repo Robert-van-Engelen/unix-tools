@@ -1,0 +1,1021 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch2.txt
+# Chapter 2 - Getting Started
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 2 - Getting Started!
+
+
+END-OF-PAGE
+title="Chapter 2 - Getting Started"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f sheep "We will we will rock you!"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Overview!
+
+    • How to use OpenSSH
+
+    • How to install packages with *!yum!, *!apt-get! and MacPorts or homebrew
+
+    • How to get help
+
+END-OF-PAGE
+demo 'cowsay -f surgery "Get on with it! Start the operation alright!"'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!How to use OpenSSH!
+
+    *!ssh username@host! starts a remote login shell for username on host
+
+    *!ssh -X username@host! login with non-trusted X11 forwarding (not secure,
+    unless *!ForwardX11Trusted yes! is set in _!~/.ssh/config!)
+
+    *!ssh -Y username@host! login with trusted X11 forwarding (more secure)
+
+    *!ssh username@host cmd cmd ...! remotely execute commands on host
+
+    *!scp file1 username@host:path/file2! copy local _!file1! to remote _!path/file2!
+
+    *!scp username@host:path/file1 file2! copy remote _!path/file1! to local _!file2!
+
+    ┌───────────────────────────────────────────────┐
+    │  Do not use telnet because it is not secure!  │ 
+    └───────────────────────────────────────────────┘
+
+END-OF-PAGE
+demo 'cowsay -f ghostbusters "Go ssh busters!"'
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!OpenSSH .ssh files!
+
+    _!~/.ssh/config! contains OpenSSH configuration settings
+
+      See *!ssh_config!(5)
+
+    _!~/.ssh/known_hosts! contains trusted remote hosts with their public keys
+    
+      When sysadmin updates keys, *!ssh! or *!scp! fails with host verification
+      error "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!"
+
+      Remove the entry for this host from _!~/.ssh/known_hosts! then retry *!ssh!
+      or *!scp!
+      
+      ┌────────────────────────────────────────────────────────────┐
+      │  Only do this if you trust the host you are connecting to  │ 
+      │  since this might be a man-in-the-middle (MITM) attack!    │ 
+      └────────────────────────────────────────────────────────────┘
+
+      Sysadmin should inform you when host keys are updated
+
+END-OF-PAGE
+demo 'cowsay -f flaming-sheep "I trusted a host. It turned out to be a WITM (wolf-in-the-middle). I got burned."'
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Automatic authentication!
+
+    If you do not have _!~/.ssh/id_rsa.pub! and _!~/.ssh/id_rsa! key files already
+    then generate an RSA key pair on your local machine (e.g. laptop) with
+
+      *!$ ssh-keygen -t rsa!
+
+    This creates _!~/.ssh/id_rsa.pub! and _!~/.ssh/id_rsa!
+
+      *!$ ls -l ~/.ssh/id_rsa*!
+      -rw-------@ 1 username group    751 Dec  2  2017 id_rsa
+      -rw-r--r--@ 1 username group    613 Dec  2  2017 id_rsa.pub
+
+    Copy the public key to the remote host _!~/.ssh/authorized_keys! with
+
+      *!$ ssh-copy-id you@host!
+
+    Next time you will automatically authenticate with *!ssh! and *!scp! for
+    this host
+
+END-OF-PAGE
+demo 'cowsay -f sheep "Next time I will try to be funnier"'
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!The command line!
+
+    When logging in with *!ssh! you enter a shell (bash, dash, tcsh, zsh, ...) 
+
+      *!echo \$0! shows the shell you're in (because \$0 is the current program)
+
+    The shell "command line" typically supports auto-completion by typing ^!TAB!
+
+      *!$ ec! ^!TAB!
+      
+      this auto-completes to
+      
+      *!$ echo!
+
+    ^!^U! (CONTROL-U) deletes the current command line
+
+END-OF-PAGE
+demo 'echo $0'
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Terminal device settings!
+
+    *!stty! sets options for a terminal device (TTY = historical TeleTYpewriter)
+
+      *!stty ek! sets the default erase to ^!^H! (backspace) and line kill to ^!^U!
+
+      *!stty sane! resets terminal options to reasonable defaults, use this
+      when your keyboard input fails or misbehaves
+
+      *!stty -a! displays the current terminal options
+
+      *!stty erase! ^!^V! ^!DEL! sets backspace to ^!DEL! (your backspace key)
+
+      Note that ^!^V! (CONTROL-V) allows us to enter a key press, which we need
+      here because ^H means something completely different
+
+END-OF-PAGE
+demo 'stty -a'
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Command history!
+
+    *!history! shows the history of commands
+    
+    You can re-examine and re-execute commands in the history with ^!↑! and ^!↓! 
+
+    !*!! ! !!re-executes the last command
+
+    *!^xx^yy^! re-executes the last command after replacing *!xx! with *!yy!
+
+   !*! !COM!! re-executes the command that starts with the prefix *!COM!
+
+   !*! !\$!! is the last word of the last command
+
+      *!$ ls -l memo.txt!
+      -rw-r--r--  1 engelen  staff  596 May 16  2017 memo.txt
+      !*!$ more !\$!!
+      displays memo.txt
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Ending the command line input!
+
+    *!exit! terminates the current shell
+
+    ^!^D! (CONTROL-D) does not terminate a program, but signals EOF which ends
+    an interactive shell and terminates all processes that it started, unless
+    the *!nohup! command was used to start a process
+
+      *!set -o ignoreeof! (bash) prevents ^!^D! from terminating your shell
+
+    *!COMMAND &! executes *!COMMAND! in the background, which will terminate
+    when the shell terminates (or earlier)
+
+    *!nohup COMMAND &! executes *!COMMAND! in the background and saves its
+    output to _!nohup.out! meaning that *!COMMAND! has no controlling terminal
+
+END-OF-PAGE
+demo 'nohup sleep 100 &' 'jobs' 'kill %1'
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Aborting execution!
+
+    ^!^C! (CONTROL-C) terminates a program that is in the foreground
+
+    ^!^\! (CONTROL-\) quits a program that is in the foreground
+
+    ^!^Z! (CONTROL-Z) suspends a program and puts it in the background, the
+    *!fg! command brings it back to the foreground
+
+    *!ps! displays the current processes
+    
+      *!ps -a! lists all processes, skipping those without a controlling terminal
+      
+      *!ps -ax! lists all processes
+
+    *!jobs! displays the current active jobs, use *!-p! to list process id
+
+    *!kill PROCESS! or *!kill -TERM PROCESS! and *!kill %JOB! terminates a process/job
+
+    *!kill -KILL PROCESS! or *!kill -KILL %JOB! force-quits a process/job
+
+END-OF-PAGE
+demo 'cowsay -f daemon "ps -KILL is a last resort if you cannot TERMinate it!"'
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!The TERM environment variable!
+
+    The *!TERM! environment variable specifies the terminal type
+
+      *!export TERM=vt100! (bash) sets the vt100 terminal type
+
+      *!setenv TERM vt100! (tcsh) sets the vt100 terminal type
+
+      Common *!TERM! terminal types:
+
+        *!vt100!             basic text terminal, no color
+        *!ansi!              ANSI terminal with color
+        *!xterm!             X11 terminal, may support color
+        *!xterm-16color!     X11 terminal with 16 colors
+        *!xterm-256color!    x11 terminal with 256 colors
+
+END-OF-PAGE
+demo 'echo $TERM'
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!su and sudo!
+
+    *!su! starts a "superuser" (administrator) shell with root privileges,
+    requires the root account password
+
+    *!su -c COMMAND! executes *!COMMAND! in a root shell, requires root password
+
+    *!sudo COMMAND! executes *!COMMAND! with root privileges by granting root
+    privileges, requires your password
+
+    *!sudo -s! starts a shell with root privileges, requires your password
+
+    Some systems keep the root account locked, which means you can only use
+    *!sudo! to gain root privileges
+
+    ┌────────────────────────────────────────────────────────────────┐
+    │  Do not experiment when you are working with root privileges!  │ 
+    └────────────────────────────────────────────────────────────────┘
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!Installing and updating packages!
+
+    Linux/Unix
+
+      Install rpm package *!NAME! with *!sudo yum install NAME! and update rpm
+      packages with *!sudo yum update!
+
+      Alternatively, you can use *!sudo apt-get update! to get a fresh list of
+      packages, then *!sudo apt-get install NAME! to install a package *!NAME!
+      and *!apt-get upgrade! to upgrade installed packages
+
+    Note that root privileges are required, hence we use *!sudo! or *!su!
+
+    Respect the awesome power bestowed on you by *!sudo! and *!su!
+
+END-OF-PAGE
+demo 'cowsay -f sheep "Yay! Got cowsay. Do not apt-get lynx. Lynx says I am yummy!"'
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Installing and updating packages!
+
+    Mac OS X MacPorts !m!https://www.macports.org!!
+
+      Install package *!NAME! with *!sudo port install NAME! and update installed
+      packages with *!sudo port upgrade outdated!
+      
+      List package *!NAME! with *!port list NAME! and list all with *!port list!,
+      but you may need to run *!sudo port selfupdate! to update MacPorts first
+
+    Mac OS X homebrew !m!https://brew.sh!!
+
+      Install packages with *!brew install NAME! and update installed packages
+      with *!brew upgrade NAME!
+
+      Update homebrew with *!brew update! and search for available packages
+      with *!brew search NAME!, *!brew list! shows installed pacakges
+
+    Respect the awesome power bestowed on you by *!sudo! and *!su!
+
+END-OF-PAGE
+nodemo
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!man pages!
+
+    The *!man! program has been the primary means for local documentation in
+    the Unix world
+    
+    Use *!man man! to learn more about *!man!
+    
+    Use *!man time! to find out about the *!time! program
+    
+    Use *!man 3 time! to find out about the *!time_t time(time_t *tloc);!
+    C function of libc documented in section 3 of the man pages
+
+    Use *!man -k KEYWORD! to search for a keyword in the man pages
+
+    In most Linux/Unix distributions, the man pages are generally in
+    directories like _!/usr/man/man?! or _!/usr/share/man/man?!
+
+    In Linux, the canonical place to find the most current man page information
+    is at !m!https://www.kernel.org/doc/man-pages!!
+
+END-OF-PAGE
+demo 'man man' 'man time' 'man 3 time' 'man -k time'
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!help, whatis, apropos and info!
+
+    *!help KEYWORD! (bash only) displays information about bash commands and
+    bash programming constructs
+
+    *!whatis KEYWORD! searches for a keyword in the utilities of the "whatis"
+    database
+
+    *!apropos KEYWORD! searches for a keyword in the descriptions of utilities
+    in the "whatis" database
+
+    *!info! displays information about utilities and programs, but it helps to
+    be adroit with Emacs if you want to use it
+
+    *!pinfo! displays information about utilities and programs if you are not
+    familiar with Emacs, but you probably need to install it
+
+END-OF-PAGE
+demo 'whatis apropos'
+      ;;
+    17) #-------------------- PAGE 17 --------------------
+      show << END-OF-PAGE
+
+  #!-h and --help options!
+
+    Use *!COMMAND -h! to get help on the *!command! utility or program
+
+    The long option flag *!COMMAND --help! often also works
+
+END-OF-PAGE
+demo 'cowsay -h 2>&1 | cowsay -f sheep'
+      ;;
+    18) #-------------------- PAGE 18 --------------------
+      show << END-OF-PAGE
+
+  #!READMEs and online resources!
+
+    Most software packages include "READMEs", e.g. _!README.txt! or _!README.pdf!
+
+    You can find READMEs and other documents locally in _!/usr/share/doc!
+
+    !m!www.gnu.org/manual!! Linux manuals
+
+    !m!www.tldp.org!! the Linux documentation project with HOWTOs, manuals and
+    articles about anything related to Linux
+
+END-OF-PAGE
+demo 'ls -l /usr/share/doc'
+      ;;
+    19) #-------------------- PAGE 19 --------------------
+      show << END-OF-PAGE
+
+  #!Programs that report on other programs!
+
+    *!which! is probably the most helpful
+    
+      For example, *!which gcc! can clear up quite quickly just what "gcc" is
+      being referred to
+
+    *!whereis! can also be useful since it provides a bit more information
+
+END-OF-PAGE
+demo 'which bash'
+      ;;
+    20) #-------------------- PAGE 20 --------------------
+      show << END-OF-PAGE
+
+  #!Who else is around?!
+
+    *!who! shows who is using the system
+
+    *!who am i! shows info about you
+
+    *!w! shows more details on who is using the system
+
+    *!users! shows a short list of users of the system
+
+    *!last! shows who has been using the system
+
+    *!finger! shows detailed info about users, often disabled and refused when
+    _!~/.nofinger! is present
+
+END-OF-PAGE
+demo 'who am i'
+      ;;
+    21) #-------------------- PAGE 21 --------------------
+      show << END-OF-PAGE
+
+  #!What is happening?!
+
+    *!top! shows what is going on your system in detail
+
+    *!uptime! displays system load and duration information
+
+    *!free! displays memory usage information (not on Mac OS X)
+
+    *!df! displays free disk space
+
+    *!hostname! displays the name of the host machine
+
+    *!pwd! displays the current working directory path
+
+END-OF-PAGE
+demo 'uptime'
+      ;;
+    22) #-------------------- PAGE 22 --------------------
+      show << END-OF-PAGE
+
+  #!Utilities!
+
+    Unix utilities typically operate on files, pipes and processes
+
+    Since most utilities operate on files, it is essential to understand Unix
+    file system characteristics
+
+END-OF-PAGE
+nodemo
+      ;;
+    23) #-------------------- PAGE 23 --------------------
+      show << END-OF-PAGE
+
+  #!Unix file characteristics!
+
+    Unix files normally follow the paradigm of a "byte-stream"
+
+    Filenames may consist of most Unicode UTF-8 characters except the NUL
+    (ASCII 0) byte and the "/" (ASCII 47)
+
+    Filenames are by default case sensitive, though some file systems are not
+    case sensitive such as the default filesystem HFS+ of Mac OS X
+
+    Periods are generally used for filename extensions, but are not special
+
+    However, filenames that start with a period are hidden and generally not
+    displayed by most core utilities unless an explicit flag is given
+    
+      *!$ ls -a!  # list all files, including hidden dot files
+
+END-OF-PAGE
+demo 'ls -a'
+      ;;
+    24) #-------------------- PAGE 24 --------------------
+      show << END-OF-PAGE
+
+  #!Listing files!
+
+    The *!ls! program can take many different options
+    
+      *!ls -l! shows a detailed listing, using one line per file
+      
+      *!ls -a! shows hidden dot files and directories
+      
+      *!ls -d! shows information about a directory rather than its contents
+
+      *!ls -t! shows listing sorted by modification time
+
+      *!ls -F! shows markings for directories (/), executables (*), links (@), etc
+
+      *!ls -G! shows colorized listing (or set enviroment variable *!CLICOLOR=1!)
+
+END-OF-PAGE
+demo bash 'export CLICOLOR=1; ls -alF'
+      ;;
+    25) #-------------------- PAGE 25 --------------------
+      show << END-OF-PAGE
+
+  #!Some popular filename "extensions"!
+
+    _!.c!, _!.h! for C files
+    _!.cpp!, _!.c++!, _!.CC!, _!.hpp! for C++ files
+    _!.pl!, _!.pm! for Perl files
+    _!.py!, _!.pyc! for Python files
+    _!.s!, _!.S! for assembly files
+    _!.diff! for source code patches created with *!diff!
+    _!.o! for object files
+    _!.a! for static libraries
+    _!.so! for dynamic libraries
+    _!.gz! for files compressed with *!gzip!
+    _!.bz2! for files compressed with *!bzip2!
+    _!.zip! for files compressed with *!zip!
+    _!.tar! for tarfiles created with *!tar!
+    _!.rpm! for RPM files
+
+END-OF-PAGE
+demo 'cowsay -f tux "Really? No .tux?"'
+      ;;
+    26) #-------------------- PAGE 26 --------------------
+      show << END-OF-PAGE
+
+  #!Speaking of filenames!
+
+    "Globbing" is a wildcard system for matching file and directory names (aka
+    "path names") and the shell resolves wildcard patterns into a list of paths
+    that are then passed as arguments to the command to execute
+
+    An asterisk "*" can match any number of characters in a path name
+
+    A question mark "?" matches any single character in a path name
+
+    Square brackets "[ ]" let you specify a character class (unfortunately,
+    square brackets are also used for other things)
+
+      *!$ ls *.c!          # list all C files
+      *!$ ls ?.c!          # list C files with single character filenames
+      *!$ ls test[A-C].c!  # list testA.c testB.c and testC.c
+
+    To prevent globbing, use single or double quotes:
+
+      *!$ echo 'hello?'!   # prints 'hello?'
+
+END-OF-PAGE
+echo "foo" > ch2_demo_foo.txt
+echo "bar" > ch2_demo_bar.txt
+demo 'ls *.txt' 'ls "*.txt"' 'echo *.txt' 'echo "*.txt"'
+      ;;
+    27) #-------------------- PAGE 27 --------------------
+      show << END-OF-PAGE
+
+  #!Filesystems!
+
+    Directories are tree-structured, and begin at _!/!
+
+    "cwd" means the current working directory, returned by the *!pwd! command
+
+    You can use the _!/proc! filesystem to see the current working directory for a
+    process in Linux:
+
+      *!$ ls -l /proc/\$\$/cwd!
+      lrwxrwxrwx [ ... ]  /proc/4665/cwd -> /tmp
+
+END-OF-PAGE
+demo 'pwd'
+      ;;
+    28) #-------------------- PAGE 28 --------------------
+      show << END-OF-PAGE
+
+  #!File permissions!
+
+    *!$ ls -l /proc/\$\$/cwd!
+    lrwxrwxrwx [ ... ]  /proc/4665/cwd -> /tmp
+
+      "r" indicates permission to read 
+
+      "w" indicates permission to write
+
+      "x" indicates permission to execute (or chdir and list directory contents)
+
+END-OF-PAGE
+demo bash 'ls -a -l'
+      ;;
+    29) #-------------------- PAGE 29 --------------------
+      show << END-OF-PAGE
+
+  #!File permissions and user classes!
+
+    *!$ ls -l -d tmp!
+    drwxr-x---  611 engelen  staff  20774 Nov 27 13:52 tmp
+     ╰┬╯╰┬╯╰┬╯      ╰──┬──╯  ╰─┬─╯  ╰─┬─╯ ╰─────┬────╯
+    user │  │        owner   group   size    date modified
+         │  │
+      group │
+            │
+         other
+
+    Each file in a filesystem has a "uid" associated with it; this uid is
+    referred as the "owner" or "user" of a file
+
+    Each file in a filesystem also has a "gid" associated with it; this gid is
+    referred to as the "group" of a file
+
+    We use the term "other" to refer to all users who are not the owner or in
+    the same group
+
+END-OF-PAGE
+demo 'ls -l -d ~/tmp'
+      ;;
+    30) #-------------------- PAGE 30 --------------------
+      show << END-OF-PAGE
+
+  #!Changing permissions with chmod!
+
+    The program *!chmod! accepts either octal notation or symbolic notation to
+    change permissions
+    
+      *!chmod 755 file!   # rwxr-xr-x
+
+      *!chmod 644 file!   # rw-r--r--
+
+      *!chmod -w file!    # make file write-protected
+
+      *!chmod u+x file!   # make file executable by user
+
+      *!chmod go+r file!  # make file readable by group and other
+
+    Permissions of new files is controlled by *!umask!
+
+      *!umask 022! prevents group members and others to write to new files
+
+      *!umask 077! prevents group members and others to read/write/exec new files
+
+END-OF-PAGE
+demo 'rm testfile' 'touch testfile' 'ls -l testfile' 'chmod go-r testfile' 'ls -l testfile'
+      ;;
+    31) #-------------------- PAGE 31 --------------------
+      show << END-OF-PAGE
+
+  #!Filesystem paths!
+
+    In Unix, we use "/" to distinguish elements in a path
+
+    Absolute paths begin with "/" which means start at the root
+
+    Relative paths start with any other character and are interpreted as begin
+    relative the current working directory
+
+    _!.! is a special path (and it is actually in the filesystem) that points at
+    the current directory
+
+    _!..! is also a special path (and also exists in the filesystem) that points
+    at the parent directory (_!/! (root) is its own parent)
+
+    _!~/! is often understood by a shell as referring to the home directory of
+    the current user (also stored in the *!HOME! environment variable)
+
+    _!~username/! is often understood by a shell as the home directory of
+    "username"
+
+END-OF-PAGE
+demo 'cowsay -f tux "Your \$HOME is my \$HOME which is $HOME"'
+      ;;
+    32) #-------------------- PAGE 32 --------------------
+      show << END-OF-PAGE
+
+  #!Shortcutting path information!
+
+    It's tedious to type full path names, and relative pathnames are often not
+    much better
+    
+    To alleviate some of this tedium, you can specify an environment variable
+    *!PATH! which gives some default locations to look for executables
+    
+    Indeed, a surprising number of programs attempt to consult various
+    "PATH"-like environment variables such as *!PATH! but also *!CDPATH!, *!MANPATH!
+    and *!CLASSPATH!; perhaps the most surprising -- and dangerous -- is
+    *!LD_LIBRARY_PATH!
+
+END-OF-PAGE
+demo 'cowsay -f tux "Your \$PATH is $PATH"'
+      ;;
+    *) #-------------------- END --------------------
+      page=32
+      ;;
+  esac
+done

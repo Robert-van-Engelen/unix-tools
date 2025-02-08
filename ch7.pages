@@ -1,0 +1,642 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch7.txt
+# Chapter 7 - The Emacs Editor
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 7 - The Emacs Editor!
+
+
+END-OF-PAGE
+title="Chapter 7 - The Emacs Editor"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f bunny "Maxing Emacs on my iMac"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Why Emacs?!
+
+    Emacs is completely programmable: it takes the idea of programming to a
+    higher level in that it maps arbitrary sequences of keystrokes to functions
+
+    Emacs Lisp is a powerful version of the Lisp programming language, but it
+    takes some guts to extend Emacs
+
+      You can use Emacs as an IDE with packages such as cmake-ide, irony-mode
+      (requires RTags), and flycheck
+
+    Having a full language as its backend, it supports a great number of
+    things, such as a built-in PDF viewer (DocView)
+
+    The "editor war" is known for the vi versus Emacs arguments
+
+      But simply use one or both editors based on the task at hand
+      
+      Vim evolved into a popular editor for programmers, plugins also convert
+      vim into an IDE, e.g. tagbar (requires Ctags), neomake, neocomplete
+
+END-OF-PAGE
+nodemo
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Emacs Tutorial!
+
+    After starting Emacs, type ^!^H! ^!t! to enter the online tutorial
+
+    Type ^!^X! ^!^C! to exit Emacs
+
+    A note on Emacs abbreviations for keys, which we will use throughout this
+    chapter from now on:
+    
+      ^!C-x! stands for ^!^X! (CONTROL-X)
+
+      ^!M-x! stands for META-x (or ALT-x, OPTION-x)
+
+        META is case-sensitive, so ^!M-x! and ^!M-X! are different, where the
+        latter should be typed as META-SHIFT-X
+
+        ^!ESC! ^!x! can be used in place of ^!M-x!
+
+      ^!C-M-v! stands for CONTROL-META-V (or ^!ESC! ^!C-v! if you prefer ^!ESC!)
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!Moving the cursor!
+
+    ^!←!/^!C-b! and ^!→!/^!C-f! move by character back/forward
+
+    ^!M-b! and ^!M-f! move by word back/forward
+
+    ^!↑!/^!C-p! and ^!↓!/^!C-n! move by line up/down
+
+    ^!C-a! and ^!C-e! move to begin/end of the line
+
+    ^!M-a! and ^!M-e! move to begin/end of a sentence
+
+    ^!M-{! and ^!M-}! move to begin/end of a paragraph
+
+    ^!C-v!/^!PgUP! and ^!M-v!/^!PgDn! move by window size up/down
+
+    ^!C-l! clear screen and redisplay all the text, moving the text around the
+    cursor to the center of the screen
+
+    ^!M-r! move to the middle of the screen
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Repeat factor!
+
+    Emacs commands can be repeated with a repeat count entered before the
+    command to execute, either by typing ^!C-u! followed by a number !G!N!!
+    or by holding META while typing the number, for example:
+
+      ^!C-u! !G!12!! ^!C-n! moves 12 lines down
+
+    Some commands behave differently with repeat factors:
+
+      ^!C-u! !G!8!! ^!C-v! scrolls 8 lines, not 8 screens
+
+      ^!C-u! !G!100!! ^!M-r! moves to line 100 (counting from 0)
+
+    If a command takes too long, type ^!C-g! to quit
+
+      This command also works to delete repeat factors after typing them
+
+      This command also quits ^!ESC! when typed by mistake
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!Deleting text!
+
+    ^!DEL! delete the character just before the cursor
+
+    ^!C-d! delete the next character after the cursor
+
+    ^!M-DEL! kill the word immediately before the cursor
+
+    ^!M-d! kill the next word after the cursor
+
+    ^!C-k! kill text from the cursor position to end of line
+
+    ^!M-k! kill text to the end of the current sentence
+
+    ^!C-w! kill text in the specified region, see the next page
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Marking a region of text!
+
+    ^!C-SPACE! marks the start of a region, then you can move the cursor to the
+    end of the region to specify this region for a command, for example:
+
+      ^!C-SPACE! ^!C-u! !G!8!! ^!C-n! ^!C-w! kills 9 lines of text
+
+    ^!C-x! ^!C-x! moves to the start of the marked region
+
+    Note: if ^!C-SPACE! does not work, try starting emacs with option *!-Q!:
+
+      *!$ emacs -Q!       # start emacs without loading init file
+
+      *!$ emacs -Q FILE!  # open _!FILE! to edit w/o loading init file
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Yanking!
+
+    Bringing back killed text is called "yanking"
+
+      ^!C-y! inserts the last killed text at the current cursor position
+
+    Yanking has a history in the "kill ring", so you can yank back earlier
+    killed texts that are stored in the kill ring that is rotated:
+
+      ^!M-y! erases last yanked text and replaces it with the next killed text
+      by rotating the kill ring
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Common C-x "character extend" commands!
+
+    ^!C-x! ^!u! undo a change, ^!C-_ ! is a shortcut for undo, ^!C-f! ^!C-_ ! to undo the undo
+
+    ^!C-x! ^!C-f! ^!FILE! ^!ENTER! open _!FILE! to edit
+
+    ^!C-x! ^!C-s! save the file, ^!C-x! ^!s! save while asking confirmation
+
+    ^!C-x! ^!C-w! ^!FILE! ^!ENTER! write to _!FILE!
+
+    ^!C-x! ^!C-c! save all files and quit
+
+    ^!C-x! ^!C-b! list buffers and ^!C-x! ^!b! ^!BUFFER! ^!ENTER! to edit a BUFFER
+
+    ^!C-x! ^!1! close other windows (so only one is left open)
+
+    ^!C-x! ^!2! split window horizontally, ^!C-x! ^!3! split window vertically
+
+    ^!C-x! ^!o! select other window
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Setting modes with M-x "named command extend"!
+
+    ^!M-x! ^!text mode! ^!ENTER! enters text mode
+
+    ^!M-x! ^!c mode! ^!ENTER! enters C mode for programming
+
+    ^!M-x! ^!fundamental mode! ^!ENTER! enters the default mode
+
+    Each major mode makes a few commands behave differently
+    
+      For example, there are commands for creating comments in a program, and
+      since each programming language has a different idea of what a comment
+      should look like, each major mode has to insert comments differently
+
+    ^!M-x! ^!auto fill mode! ^!ENTER! break lines between words, this command toggles
+
+      ^!C-u! !G!72!! ^!C-x! ^!f! sets text width to 72 characters
+
+      ^!M-q! reformats the current paragraph
+
+END-OF-PAGE
+nodemo
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!Searching and replacing text!
+
+    ^!C-s! ^!TEXT! ^!ENTER! searches for text, then ^!C-s! and ^!C-r! for next/prev
+
+    ^!C-r! ^!TEXT! ^!ENTER! reverse searches for text, then ^!C-s! and ^!C-r! for next/prev
+
+    ^!C-M-s! ^!REGEX! ^!ENTER! searches for matching text, then ^!C-s! and ^!C-r!
+
+    ^!C-M-r! ^!REGEX! ^!ENTER! reverse searches for matching text, then ^!C-s! and ^!C-r!
+
+    ^!M-x! ^!repl s! ^!ENTER! ^!STRING! ^!ENTER! ^!TEXT! replace STRING with TEXT
+
+    ^!M-x! ^!repl reg! ^!ENTER! ^!REGEX! ^!ENTER! ^!TEXT! replace REGEX with TEXT
+
+    where ^!REGEX! has meta characters . * + ? [...] [^...] \\| \\( \\) \\w \\W and
+    anchors ^ $ \\< \\> \\b \\B
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!Executing shell commands!
+
+    !^!M-! !! ^!COMMAND! ^!ENTER! executes the shell COMMAND
+
+    ^!C-u! !^!M-! !! ^!COMMAND! ^!ENTER! executes COMMAND and inserts its output
+
+    ^!M-|! ^!COMMAND! ^!ENTER! executes COMMAND on the current region of text
+
+    ^!C-u! ^!M-|! ^!COMMAND! ^!ENTER! executes COMMAND on the region of text and
+    inserts its output
+
+    ^!M-x! ^!compile! ^!ENTER! ^!NAME! ^!ENTER! executes the following command
+
+      *!$ make -k NAME!
+
+    on the background and stores its output in the buffer named "compilation"
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!The .emacs strtup file!
+
+    Create a _!.emacs! startup file in your home directory and add the Emacs
+    parameters that you generally want to use
+
+    For example:
+    !*!
+      ;; get DEL character from backspace key
+      (keyboard-translate ?\\C-h ?\\177)
+      ;; indent for C mode
+      (setq c-indent-level 8)
+    !!
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!References!
+
+    The GNU Emacs reference card:
+    
+      !m!https://www.gnu.org/software/emacs/refcards/pdf/refcard.pdf!!
+
+    A guided tour of Emacs:
+
+      !m!https://www.gnu.org/software/emacs/tour/!!
+
+    The GNU Emacs manual:
+
+      !m!https://www.gnu.org/software/emacs/manual/pdf/emacs.pdf!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=14
+      ;;
+  esac
+done

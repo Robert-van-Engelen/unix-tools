@@ -1,0 +1,524 @@
+# ch10.txt
+# Chapter 10 - Bash Programming
+# Created by Robert van Engelen
+# Distributed under the GPL
+________________________________________________________________________________
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 10 - Bash Programming!
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+title="Chapter 10 - Bash Programming"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f turtle "The Bourne Again Shell again"'
+________________________________________________________________________________
+
+  #!Overview!
+
+    • The *!if-then-elif-else-fi! statement
+
+    • The *!case-in-esac! statement
+
+    • The *!while-do-done! statement
+
+    • The *!until-do-done! statement
+
+    • The *!for-in-do-done! statement
+
+    • *!true!, *!false!, *!break! and *!continue!
+
+    • "Here documents"
+
+    • Working with file descriptors
+
+    • Expanding unset variables
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The if statement!
+
+    The general form of an *!if! statment with optional *!else! and *!elif! is:
+!*!
+      if COMMAND
+      then
+        ... one or more commands ...
+      elif COMMAND
+      then
+        ... one or more commands ...
+      else
+        ... one or more commands ...
+      fi
+!!
+    Because *!;! is a separator, just like newline, we can use shorter forms:
+
+      *!if COMMAND; then!                  *!elif COMMAND; then!
+
+    Note that *!if! checks the exit status of a command (exit 0 is success), so
+    use *!test CONDITION! or its shorthand *![ CONDITION ]! to test conditions
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    if [ -f \$file ]; then
+      more \$file
+    elif [ -d \$file]; then
+      echo "\$file is a directory"
+    else
+      echo "\$file not found" 1>&2
+      exit 1
+    fi
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    if which tcsh; then
+      echo "You have tcsh, which was found on your \\\$PATH"
+      if ls -l \$(which tcsh) 2> /dev/null; then
+        echo "OK"
+      else
+        echo "Could not list tcsh, ls returned \$?"
+      fi
+    fi
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The case statement!
+
+    The general form of a *!case! statement is:
+!*!
+      case EXPR in
+        PATTERN1)
+          ... one or more commands ...
+          ;;
+        PATTERN2)
+          ... one or more commands ...
+          ;;
+        *)
+          ... one or more commands ...
+          ;;
+      esac
+!!
+    You can use *!|! in a pattern for alternatives, patterns may also contain:
+
+      *!* !     matches any string, often used for the default case
+      *!?!      matches any single character
+      *![...]!  matches a character in the specified character class
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    read -p "Do you agree? yes or no (yes/no)?" answer
+    case \$answer in
+      "yes")
+        echo "Alright, you agree!"
+        ;;
+      "no")
+        echo "You do not agree"
+        ;;
+      *)
+        echo "Please answer \\"yes\\" or \\"no\\""
+    esac
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The select statement!
+
+    The *!select! statement allows you to set a variable according to the
+    interactive selection of choices by a user, it's a quick way to produce a
+    menu of options
+
+    The general form of a *!select! statements is:
+!*!
+      select VARIABLE in ARG1 ARG2 ...
+      do
+        ... one or more commands ...
+      done
+!!
+    The selection is repeated until a *!break! is executed in the body
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    echo "Do you agree?"
+    select answer in yes no
+    do
+      if [ "\$answer" == "yes" ]; then
+        echo "Alright, you agree!"
+        break
+      elif [ "\$answer" == "no" ]; then
+        echo "You do not agree"
+        break
+      else
+        echo "You did not answer \\"yes\\" or \\"no\\""
+      fi
+    done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The while statement!
+
+    The genenal form of a *!while! statement is:
+!*!
+      while COMMAND
+      do
+        ... one or more commands ...
+      done
+!!
+    Because *!;! is a separator, just like newline, we can use shorter forms:
+!*!
+      while COMMAND; do
+        ... one or more commands ...
+      done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    function yesno() {
+      local key=''
+      while [ "\$key" != "y" -a "\$key" != "n" ]; do
+        read -rsn1 -p "\$1 (y/n)? " key < /dev/tty
+      done
+      echo "\$key"
+      [ "\$key" = "y" ]
+    }
+!!
+    *!$ if yesno "Try again"; then echo "OK"; else echo "Stopping"; fi!
+    Try again (y/n)? y
+    OK
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The until statement!
+
+    The genenal form of an *!until! statement is:
+!*!
+      until COMMAND
+      do
+        ... one or more commands ...
+      done
+!!
+    Because *!;! is a separator, just like newline, we can use shorter forms:
+!*!
+      until COMMAND; do
+        ... one or more commands ...
+      done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    function yesno() {
+      local key
+      until [ "\$key" = "y" -o "\$key" = "n" ]; do
+        read -rsn1 -p "\$1 (y/n)? " key < /dev/tty
+      done
+      echo "\$key"
+      [ "\$key" = "y" ]
+    }
+!!
+    *!$ if yesno "Try again"; then echo "OK"; else echo "Stopping"; fi!
+    Try again (y/n)? n
+    Stopping
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!true, false, break and continue!
+
+    The built-in *!true! command exits with a zero exit code and the built-in
+    *!false! command exits with a nonzero exit code
+
+    The *!break! statement exits a loop and the *!continue! statement
+    immediately starts the next iteration of a loop (or repeats a *!select!)
+
+    Example:
+!*!
+      while true; do
+        read -rsn1 -p "Press q to quit " key < /dev/tty
+        if [ "\$key" = "q" ]; then
+          break
+        else
+          echo "Keep iterating..."
+          continue
+        fi
+        echo "This part is never executed"
+      done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The for statement!
+
+    The genenal form of a *!for! statement is:
+!*!
+      for VARIABLE in LIST
+      do
+        ... one or more commands ...
+      done
+!!
+    Because *!;! is a separator, just like newline, we can use shorter forms:
+!*!
+      for VARIABLE in LIST; do
+        ... one or more commands ...
+      done
+!!
+    Note: *!VARIABLE! is a shell variable and has no local scope in *!for!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    for file in *; do
+      if [ -f \$file ]; then
+        chmod -w \$file
+      fi
+    done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    function writeprotect() {
+      local file
+      for file in "\$@"; do
+        if [ -f \$file ]; then
+          chmod -w \$file
+        fi
+      done
+    }
+!!
+    *!$ writeprotect *!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+!*!
+    for i in {3..100}; do
+      composite=0
+      for j in \$(seq 2 \$i); do
+        if [ \$j -ge \$i ]; then
+          break
+        elif (( i % j == 0 )); then
+          composite=1
+          break
+        fi
+      done
+      if (( composite == 0 )); then
+        echo "\$i is prime"
+      fi
+    done
+!!
+    Note:
+    
+      *!{3..100}! (brace expansion) is a list of *!3!, *!4!, ... *!100!
+      *!seq 2 \$i! outputs a list of *!2!, *!3!, ... to the value of *!\$i!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The for statement has a short form!
+
+    The *!for! short form without *!in LIST! iterates over the shell arguments
+    *!\$1!, *!\$2!, ...
+
+    Example:
+!*!
+      function list() {
+        local arg
+        for arg
+        do
+          echo "Argument \$arg"
+        done
+      }
+!!
+      *!$ list a b c!
+      Argument a
+      Argument b
+      Argument c
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!The for statement with arithmetic!
+
+    You can use *!for! with *!(( EXPRESSION; EXPRESSION; EXPRESSION ))!
+
+    Example:
+!*!
+      for (( i=3; i<=100; i+=2 )); do
+        composite=0
+        for (( j=2; j<i; j++ )); do
+          if (( i % j == 0 )); then
+            composite=1
+            break
+          fi
+        done
+        if (( composite == 0 )); then
+          echo "\$i is prime"
+        fi
+      done
+!!
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Here document!
+
+    A "here document" allows you to redirect a blob of text to standard input,
+    indicated by *!<< SENTINEL!, the text that follows up to the *!SENTINEL! on
+    a new line is read; here documents are often used within shell scripts
+
+    Example:
+
+      *!$ wc << STOP!
+      *!> This is a test!
+      *!> to count lines and words.!
+      *!> STOP!
+             2       9      41
+
+    Text is expanded by variable substitution and command substitution:
+
+      *!$ cat << END!
+      *!> Hello \$USER, today is \$(date)!
+      *!> END!
+      Hello sam, today is Wed Feb  7 10:27:49 EST 2018
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Working with file descriptors!
+
+    You can open files in bash using the *!exec! builtin:
+
+      *!exec NUM> OUTFILE! # open _!OUTFILE! for writing via descriptor *!NUM!
+
+      *!exec NUM< INFILE!  # open _!INFILE! for reading via descriptor *!NUM!
+
+    To close the file use *!exec NUM<&-!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Working with file descriptors continued!
+
+    For example:
+
+      *!$ exec 3> myfile.txt!            # open _!myfile.txt! for writing on FD 3
+      *!$ echo "Created \$(date)" 1>&3!   # write to FD 3
+      *!$ echo "That's all folks" 1>&3!  # write to FD 3
+      *!$ exec 3<&-!                     # close FD 3 of _!myfile.txt!
+
+    We used *!1>&3! to merge stdout with file descriptor 3, just as we could
+    merge stderr (file descriptor 2) with stdout (file descriptor 1) using
+    *!2>&1! as we saw earlier in Chapter 3
+
+    Likewise, we can merge a file descriptor with stdin using *!0<&4!
+
+      *!$ exec 4< myfile.txt!  # open _!myfile.txt! for reading on FD 4
+      *!$ read line 0<&4!      # read a line from FD 4
+      *!$ exec 4<&-!           # close FD 4 of _!myfile.txt!
+      *!$ echo \$line!
+      Created $(date)
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Working with file descriptors continued!
+
+    To duplicate an output file descriptor *!NUM1! to *!NUM2! use:
+
+      *!exec NUM1>&NUM2!
+
+    To duplicate an input file descriptor *!NUM1! to *!NUM2! use:
+
+      *!exec NUM1<&NUM2!
+
+    These duplicate (merge) file descriptors such that the effects are visible
+    to all of the shell commands that follow, instead of just locally per
+    command
+
+    *!exec! can also be used to execute a command or program, but the given
+    command or program will replace the current shell program
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Expanding unset variables!
+
+    Earlier in Chapter 8 we saw how to assign and use variables and arrays
+
+    You can use an unset variable in bash, its value is empty
+
+    There are quick ways to use and set default values for unset variables:
+
+      *!\${VARIABLE:-DEFAULT}! gives the value of *!VARIABLE! when set, *!DEFAULT!
+      otherwise
+
+      *!\${VARIABLE:=DEFUALT}! sets *!VARIABLE! to *!DEFAULT! when unset and
+      gives its value
+
+    You can also display a message when a variable is not set:
+
+      *!\${VARIABLE:?MESSAGE}! displays *!MESSAGE! on stderr when *!VARIABLE! is unset
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo

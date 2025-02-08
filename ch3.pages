@@ -1,0 +1,1623 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch3.txt
+# Chapter 3 - Utilities
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 3 - Utilities!
+
+
+END-OF-PAGE
+title="Chapter 3 - Utilities"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f sheep "We will we will rock you!"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Overview!
+
+    • Listing files
+
+    • Displaying file contents
+
+    • Copy, link, move, remove files
+
+    • Search, sort, print, compare files
+
+    • Redirecting I/O
+
+    • Using pipes
+
+    • Compression and archiving
+
+    • Communicating with other users
+
+END-OF-PAGE
+demo 'cowsay -f surgery "Get on with it! Start the operation alright!"'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Special characters!
+
+    The following tend to have meaning to the shell, so be careful when trying
+    to use them in names:
+
+      & ; | * ? ' " \` [ ] ( ) $ < > { } # / \ ! ~
+
+    Also avoid the following that are reserved in Windows, do not use them in
+    filenames if you want to transfer files between Unix/Linux and Windows:
+    
+      : %
+    
+    While legal in a filename, avoid "white space" (^!SPACE!, ^!TAB! and ^!ENTER!),
+    since spacing is used to separate commands, command options and arguments
+    
+    The following characters are okay to use in names:
+
+      letters digits _ + , - = @ . (use dot for filename "extensions")
+
+    Most operating systems also support Unicode filenames using UTF-8 encoding
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!Quoting special characters!
+
+    You can quote special characters in three ways:
+
+      Escaping them by using a backslash
+
+      Use single quotes
+
+      Use double quotes, but $ and \ are interpreted
+
+    For example:
+
+      *!$ echo '\$PATH'!
+      \$PATH
+      *!$ echo \\\$PATH!
+      \$PATH
+      *!$ echo "\\\$PATH = \$PATH"!
+      \$PATH = /usr/sbin:/usr/bin:/sbin:/bin
+
+END-OF-PAGE
+demo 'echo "\$HOME = $HOME"'
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Using special characters!
+
+    In double quotes use *!\\\\!, *!\\\$! and *!\\"! to escape *!\\!, *!\$! and *!"! respectively
+    
+      *!$ echo "a \\"backslash\\" \\\\ is used to escape special characters"!
+      a "backslash" \ is used to escape special characters
+
+    You cannot use *!\\'! in single quotes, but it works in *!$'...'! (bash)
+
+      *!$ echo $'a \\' is a quote'!
+      a ' is a quote
+
+    These *!\\n \\r \\t \\e \\a \\b \\' \\" \\xHH! (hex) *!\\nnn! (octal) also work in *!$'...'!
+    
+    To enter a key code type a ^!^V! (CONTROL-V) first then hit the key:
+
+      *!$ echo "Hello! ^!^V! ^!TAB! *!world!
+      Hello   world
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!ls: list files!
+
+    *!ls -a! show hidden dot files and directories, use *!ls -A! to skip _!.! and _!..!
+
+    *!ls -b! show non-graphical characters in a useful fashion
+
+    *!ls -d! named directories are not descended into
+
+    *!ls -i! show inode number
+
+    *!ls -l! show long information
+
+    *!ls -r! reverse the ordering
+
+    *!ls -t! order by modification time
+
+    *!ls -F! show markings for directories (/), executables (*), links (@), etc
+
+    *!ls -C! force multi-column output (default for output to terminals)
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!ls: list files with colors!
+
+    *!ls -G! show colorized listing
+    
+    To always show colorized listings, set enviroment variable *!CLICOLOR=1!
+    and optionally environment variable *!LS_COLORS! to set specific color themes:
+
+      *!$ export CLICOLOR=1! (bash)         *!% setenv CLICOLOR -1! (tcsh)
+      *!$ export LS_COLORS='di=1;35'!       *!% setenv LS_COLORS 'di=1;35'!
+
+      See also *!dircolors!(1) to generate *!LS_COLORS!, note that Mac OS X and
+      FreeBSD use *!LSCOLORS! with a different format e.g. FxGxBxExCxDxdxhbadxcxd
+
+    Some useful shortcuts:
+
+      *!$ alias ll="ls -l"! (bash)          *!% alias ll "ls -l"! (tcsh)
+
+      *!$ alias la="ls -A"! (bash)          *!% alias la "ls -A"! (tcsh)
+
+      *!$ alias l="ls -CF"! (bash)          *!% alias l "ls -CF"! (tcsh)
+
+END-OF-PAGE
+demo 'wget -q -O - http://www.cs.fsu.edu/~engelen/courses/COP4342/LSCOLORS.txt'
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Displaying file contents!
+
+    *!cat! takes input from standard input and sends it to standard output
+
+    *!cat FILE1 FILE2! opens _!FILE1! and then _!FILE2! and sends them to stdout
+    
+    *!more! provides a simple pager to view a file or stdin
+
+      "More is less": *!more! is often aliased to *!less!
+
+    *!less! also provides a pager, but it additionally buffers input so that
+    you can go backwards 
+
+    *!head! displays the first lines of a file 
+
+    *!tail! displays the last lines of a file 
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!cat FILE1 FILE2 ...: catenate files or stdin!
+
+    Sends file contents catenated to standard output
+
+    *!cat -b! number non-blank lines
+
+    *!cat -n! number the output files
+
+    *!cat -v! display non-printing characters in graphical form
+
+    Utilities that require input typically read stdin when you do not provide a
+    file to read:
+
+      *!$ cat!    # blocks on input and reads from the terminal, type ^!^D! (EOF)
+               # when you are done
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+ #!more [FILE]: more is less!
+
+   *!more! and *!less! are "pagers" and display files or stdin, but *!less! can
+   move backwards over the file's content and is more efficient when paging
+   through larger files
+
+   *!less! has more options and features than *!more!, which are:
+
+     ^!↓! or ^!ENTER! go foward one line
+
+     ^!↑! go back one line
+
+     ^!SPACE! go forward one page  ^!b! go back one page
+
+     ^!d! go forward half a page   ^!u! go back half a page
+
+     ^!g! go to a line             ^!=! display the current line number
+
+     ^!v! edit file in vi(m)
+
+END-OF-PAGE
+nodemo
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+ #!less [FILE]: continued!
+
+     ^!/! search forward           ^!?! search backward
+
+     ^!n! repeat search forward    ^!N! repeat search backward
+
+     ^!:n! go to the next file     ^!:p! go to the previous file
+
+     ^!r! or ^!^L! (CONTROL-L) repaint the screen
+
+     ^!R! reload file and repaint the screen, useful when input changes
+
+     ^!h! display a help page
+
+     ^!q! quit
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!head [FILE]: display initial lines of a file or stdin!
+
+    *!head -n NUM! print *!NUM! lines
+
+    Default head line count is 10 lines
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!tail [FILE]: display final lines of a file or stdin!
+
+    *!tail -n NUM! print *!NUM! lines
+
+    *!tail -f! follow the file as it changes, type ^!^C! to stop:
+
+      *!$ tail -f myprocess.log!    # follow the process log as it changes
+
+    *!tail -r! display lines in reverse order
+
+    Default tail line count is 10 lines
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Common utilities for working with files!
+
+    *!cp! and *!ln! copy/link files and directories
+
+    *!rm! and *!rmdir! remove links, files and directories
+
+    *!mv! move (rename) files and directories
+
+    *!lpr! print a file
+
+    *!grep! search file content
+
+    *!sort! and *!uniq! sort lines in files and filter out repeated lines
+
+    *!diff! and *!cmp! compare two files
+
+    *!locate! and *!find! find the location of files
+
+    *!file! and *!test! determine file type and test existence of a file
+
+END-OF-PAGE
+nodemo
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!cp SOURCE DEST: copy files and directories!
+
+    *!cp -a! archive; attempts to preserve all attributes in the copy
+
+    *!cp -f! forced: meaning don't ask or complain
+
+    *!cp -i! interactive: asks the user whether or not to copy an item
+
+    *!cp -n! do not overwrite existing file
+
+    *!cp -r! recursively copies files in directories
+
+    You may want to define an alias to avoid accidentally overwriting files:
+
+      *!$ alias cp="cp -i"! (bash)          *!% alias cp "/bin/cp -i"! (tcsh)
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!ln SOURCE DEST: link files and directories!
+
+    *!ln -f! forced: meaning don't ask or complain
+
+    *!ln -i! interactive: asks the user whether or not to link an item
+
+    *!ln -s! create a symbolic link instead of a hard link
+
+    It is impossible to create a hard link to a directory in Unix/Linux
+
+    Unix supports the concept of a "symbolic" link (soft link), which is just
+    an ordinary flat file which has a bit set that tells the kernel to treat
+    the contents of the file as a path to the source location of the file or
+    directory
+
+    Some utilities treat symbolic links as regular files and you must use
+    option *!-H! or *!L! to let utilities follow the link to access the file
+    
+      *!tar! does not archive the source file of a symbolic link by default,
+      use *!tar -L! to follow symbol links to the sources to archive
+
+END-OF-PAGE
+rm -f $workd/ch3_demo_hardlinked $workd/ch3_demo_hardlink $workd/ch3_demo_softlinked $workd/ch3_demo_softlink
+demo 'touch ch3_demo_hardlinked' 'ln ch3_demo_hardlinked ch3_demo_hardlink' 'echo "This is hardlinked" >> ch3_demo_hardlink' 'ls -l ch3_demo_hardlink*' 'rm ch3_demo_hardlinked' 'cat ch3_demo_hardlink' 'touch ch3_demo_softlinked' 'ln -s ch3_demo_softlinked ch3_demo_softlink' 'echo "This is softlinked" >> ch3_demo_softlink' 'ls -l ch3_demo_softlink*' 'rm ch3_demo_softlinked' 'cat ch3_demo_softlink'
+      ;;
+    17) #-------------------- PAGE 17 --------------------
+      show << END-OF-PAGE
+
+ #!rm FILE and rmdir DIR: unlinking and removing files and directories!
+
+   A single file can have many hard links
+    
+     You can see the hard link count with *!ls -l!
+
+   A process can use the system call *!unlink!(2) to remove a file but not a
+   directory
+
+   A process can use the system call *!rmdir!(2) to remove an empty directory 
+
+END-OF-PAGE
+nodemo
+      ;;
+    18) #-------------------- PAGE 18 --------------------
+      show << END-OF-PAGE
+
+  #!rm FILE and rmdir DIR: continued!
+
+    *!rm -i! interactive: asks the user whether or not to remove an item
+
+    *!rm -f! forced: meaning don't ask or complain
+
+    *!rm -r! recursively removes files from directories
+
+    *!rmdir! removes an empty directory
+
+    You may want to define an alias to avoid accidental removal:
+
+      *!$ alias rm="rm -i"! (bash)          *!% alias rm "/bin/rm -i"! (tcsh)
+
+   A common convention in Unix/Linux is to use *!--! to end the options list:
+
+     *!$ rm -f -- -f!    # force-delete a file named _!-f!
+
+END-OF-PAGE
+demo 'echo "mistake" > -f' 'rm -f -- -f'
+      ;;
+    19) #-------------------- PAGE 19 --------------------
+      show << END-OF-PAGE
+
+  #!mv SOURCE DEST: move (rename) files and directories!
+
+    *!mv -f! forced: meaning don't ask or complain
+
+    *!mv -i! interactive: asks the user whether or not to copy an item
+
+    *!mv -n! do not overwrite existing file
+
+    You may want to define an alias to avoid accidentally overwriting files:
+
+      *!$ alias mv="mv -i"! (bash)          *!% alias mv "/bin/mv -i"! (tcsh)
+
+END-OF-PAGE
+nodemo
+      ;;
+    20) #-------------------- PAGE 20 --------------------
+      show << END-OF-PAGE
+
+  #!lpr FILE: print a file!
+
+    *!lpr -P PRINTER! specify *!PRINTER! to print
+
+    *!lpr -# COUNT! print *!COUNT! copies of a file
+
+  #!a2ps FILE: convert text file and print!
+
+    *!a2ps -P PRINTER! send output to *!PRINTER! rather than the default printer
+
+    *!a2ps -o FILE! save output to *!FILE! rather than the default printer
+
+END-OF-PAGE
+nodemo
+      ;;
+    21) #-------------------- PAGE 21 --------------------
+      show << END-OF-PAGE
+
+  #!lpstat -p: list printers!
+
+    Note: consult the CS sysadmin web pages for details on available printers
+    and printing policies
+
+  #!lpq: show the current print queue with print jobs!
+
+    *!lpq -l! gives a longer report
+
+  #!lprm JOBID: remove a print job!
+
+    *!lprm -P PRINTER! specify *!PRINTER! to remove the job from
+
+END-OF-PAGE
+nodemo
+      ;;
+    22) #-------------------- PAGE 22 --------------------
+      show << END-OF-PAGE
+
+  #!grep PATTERN FILE1 FILE2 ...: search files or stdin for a pattern!
+
+    *!PATTERN! is a regular expression in basic syntax (POSIX BRE):
+
+      *!.!                   wildcard, matches any character except newline
+
+      *![abc0-9]!            character class with ranges, *![^abc0-9]! is negated
+
+      *!PATTERN1\\|PATTERN2!  alternation
+
+      *!\\(PATTERN\\)!         grouping
+
+      *!PATTERN\\?!           zero or one
+
+      *!PATTERN*!            zero or more
+
+      *!PATTERN\\+!           one or more
+
+      *!PATTERN\\{n,m\\}!      n to m times
+
+END-OF-PAGE
+nodemo
+      ;;
+    23) #-------------------- PAGE 23 --------------------
+      show << END-OF-PAGE
+
+  #!grep PATTERN FILE1 FILE2 ...: continued!
+
+    *!grep -E PATTERN! extended regular expression syntax (POSIX ERE):
+
+      *!.!                  wildcard, matches any character except newline
+
+      *![abc0-9]!           character class with ranges, *![^abc0-9]! is negated
+
+      *!PATTERN1|PATTERN2!  alternation
+
+      *!(PATTERN)!          grouping
+
+      *!PATTERN?!           zero or one
+
+      *!PATTERN*!           zero or more
+
+      *!PATTERN+!           one or more
+
+      *!PATTERN{n,m}!       n to m times
+
+END-OF-PAGE
+nodemo
+      ;;
+    24) #-------------------- PAGE 24 --------------------
+      show << END-OF-PAGE
+
+  #!grep PATTERN FILE1 FILE2 ...: continued!
+
+    Pattern anchors in POSIX BRE and ERE syntax:
+
+      *!^PATTERN!  match at begin of line/string
+
+      *!PATTERN\$! match at end of line/string
+
+      *!\\b!        match word boundary, *!\\B! is negated (not a word boundary)
+
+    Special character classes:
+
+      *!\\w!        match a word character (letter, digit and _)   
+
+      *!\\s!        match a white sapce character
+
+      *![[:C:]]!   match *!upper!, *!lower!, *!space!, *!digit!, *!xdigit!, *!punct!, *!alpha!, *!alnum!
+
+      *![^[:C:]]!  do not match POSIX CLASS C 
+
+END-OF-PAGE
+nodemo
+      ;;
+    25) #-------------------- PAGE 25 --------------------
+      show << END-OF-PAGE
+
+  #!grep PATTERN FILE1 FILE2 ...: continued!
+
+    *!grep -i! ignore case
+
+    *!grep -v! invert match
+
+    *!grep -c! count matching lines
+
+    *!grep -l! show files with matching lines
+
+    *!grep -h! suppress prefixing of filenames
+
+    *!grep -H! print the file name for each match
+
+    *!grep -C LINES! print *!LINES! of context for each match
+
+    *!egrep PATTERN FILE1 FILE2 ...! same as *!grep -E! with ERE syntax
+
+    *!fgrep STRING FILE1 FILE2 ...! fast grep with *!STRING! instead of a pattern
+
+END-OF-PAGE
+demo 'ls | grep demo' 'ls | grep "ch."' 'grep -c demo *' 'grep -C 1 demo *'
+      ;;
+    26) #-------------------- PAGE 26 --------------------
+      show << END-OF-PAGE
+
+  #!sort [FILE]: output FILE or stdin with lines sorted!
+
+    *!sort -u! print only unique lines (like *!sort FILE | uniq!)
+
+    *!sort -b! ignore initial blank lines
+
+    *!sort -n! numerical sort
+
+    *!sort -r! reverse the sort
+
+    *!sort -k! specify a key to sort with
+
+    *!sort -s! stabilize the sort
+
+    *!sort -t SEP! specify a field separator
+
+    *!sort -o FILE! save to *!FILE!
+
+END-OF-PAGE
+nodemo
+      ;;
+    27) #-------------------- PAGE 27 --------------------
+      show << END-OF-PAGE
+
+  #!uniq [FILE]: output FILE or stdin without duplicate lines!
+
+    *!uniq -i! ignore case
+
+    *!uniq -u! only output lines that are not repeated in the input
+
+    *!uniq -d! only output lines that are repeated in the input
+
+END-OF-PAGE
+nodemo
+      ;;
+    28) #-------------------- PAGE 28 --------------------
+      show << END-OF-PAGE
+
+  #!diff FILE1 FILE2: compare two files or directories!
+
+    A common convention in Unix/Linux is to use *!-! (single dash) to read from
+    stdin, so you can compare a file to stdin with *!diff - FILE!
+  
+    *!diff -i! ignore case
+
+    *!diff -b! ignore space change
+
+    *!diff -c! output with context, *!diff -C NUM! with *!NUM! lines
+
+    *!diff -u! output with unified context, *!diff -U NUM! with *!NUM! lines
+
+    *!diff -r! recursively compares files in directories
+
+    An example to create a C++ patch file:
+
+      *!$ diff -u oldfile.cpp newfile.cpp > patch.diff!
+      *!$ vi patch.diff!
+
+END-OF-PAGE
+cat > $workd/ch3_demo_oldfile.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hello world" << std::endl;
+}
+END
+cat > $workd/ch3_demo_newfile.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hello world" << std::endl;
+  exit(EXIT_SUCCESS);
+}
+END
+demo 'cat ch3_demo_oldfile.cpp' 'cat ch3_demo_newfile.cpp' 'diff -u ch3_demo_oldfile.cpp ch3_demo_newfile.cpp > ch3_demo_patch.diff' 'cat ch3_demo_patch.diff'
+      ;;
+    29) #-------------------- PAGE 29 --------------------
+      show << END-OF-PAGE
+
+  #!cmp FILE1 FILE2: compare two files byte by byte!
+
+    *!cmp -i SKIP! skip the first *!SKIP! bytes
+
+    *!cmp -n LIMIT! compare at most *!LIMIT! bytes
+
+END-OF-PAGE
+nodemo
+      ;;
+    30) #-------------------- PAGE 30 --------------------
+      show << END-OF-PAGE
+
+  #!locate and find: find and locate files!
+
+    *!locate FILE! displays a list of locations where *!FILE! resides
+
+    *!find PATH -name FILE -print! recursively walk *!PATH! to find *!FILE! and print it
+
+      *!$ find /bin -name echo -print!
+      /bin/echo
+
+      *!$ find /usr/include -name 'std*.h' -print!
+      /usr/include/stddef.h
+      /usr/include/stdint.h
+      /usr/include/stdio.h
+      /usr/include/stdlib.h
+      /usr/include/sys/stdio.h
+
+      Note that we used *!'std*.h'! as an argument to *!find -name!, otherwise
+      globbing will replace *!std*.h! with a list of files in the current dir!
+
+    The *!find! program is complex and has a lot of features
+
+END-OF-PAGE
+demo 'find /usr/include -name "std*.h" -print'
+      ;;
+    31) #-------------------- PAGE 31 --------------------
+      show << END-OF-PAGE
+
+  #!file FILE: determine file type!
+
+    No really useful options
+
+  #!test OPTION FILE: test existence and attributes of a file or directory!
+
+    *!test -d FILE! exits 0 if *!FILE! is a directory
+
+    *!test -f FILE! exits 0 if *!FILE! is a regular file
+
+    *!test -h FILE! exits 0 if *!FILE! is a symbolic link
+
+    *!test -r FILE! exits 0 if *!FILE! is readable
+
+    *!test -w FILE! exits 0 if *!FILE! is writable
+
+    *!test -x FILE! exits 0 if *!FILE! is executable
+
+END-OF-PAGE
+demo bash 'file /bin/bash'
+      ;;
+    32) #-------------------- PAGE 32 --------------------
+      show << END-OF-PAGE
+
+  #!Program exit status codes!
+
+    After executing a command, *!\$?! holds the exit status code:
+
+      *!$ test -f /doesnotexist!
+      *!$ echo \$?!
+      1
+      *!$ test -d /bin!
+      *!$ echo \$?!
+      0
+
+    The exit code can be used in a bash *!if-then! (we will talk about bash
+    programming later):
+
+      *!$ if test -d /bin; then echo "/bin is a directory"; fi!
+      /bin is a directory
+      *!$ if test -x /bin/bash; then echo "/bin/bash is executable"; fi!
+      /bin/bash is executable
+
+END-OF-PAGE
+demo bash 'if test -d /bin; then echo "/bin is a directory"; fi'
+      ;;
+    33) #-------------------- PAGE 33 --------------------
+      show << END-OF-PAGE
+
+  #!Program exit status codes continued!
+
+    Exit 0 means success and exit nonzero failure, used by this example program:
+
+      *!int! main(*!int! argc, *!char! *argv[])
+      {
+        *!if! (argc < 1)
+          fprintf(stderr, "Usage: readable FILE\n");
+        *!else!
+        {
+          FILE *fd = fopen(argv[1], "r");
+          *!if! (fd)
+          {
+            fclose(fd);
+            exit(!m!EXIT_SUCCESS!!); // exit zero
+          }
+        }
+        exit(!m!EXIT_FAILURE!!); // exit nonzero (1)
+      }
+
+END-OF-PAGE
+cat > $workd/ch3_demo_readable.c << END
+#include <stdio.h>
+#include <stdlib.h>
+int main(int argc, char *argv[])
+{
+  if (argc < 2)
+    fprintf(stderr, "Usage: ch1_demo_readable FILE\n");
+  else
+  {
+    FILE *fd = fopen(argv[1], "r");
+    if (fd)
+    {
+      fclose(fd);
+      exit(EXIT_SUCCESS);
+    }
+  }
+  exit(EXIT_FAILURE);
+}
+END
+demo bash 'cat ch3_demo_readable.c' 'gcc -o ch3_demo_readable ch3_demo_readable.c' 'if ./ch3_demo_readable ch3_demo_readable.c; then echo yes; fi'
+      ;;
+    34) #-------------------- PAGE 34 --------------------
+      show << END-OF-PAGE
+
+  #!Program exit status codes continued!
+
+    The following utilities that we discussed return useful exit status codes:
+
+      *!grep! returns success (0) if at least one line in the input matches
+
+      *!diff! returns success (0) if the two files match
+
+      *!test! returns success (0) if the test is true
+
+    This can be confusing when compared to programming languages such as C,
+    because 0 typically means false while 1 means true
+
+    You can list or "chain" commands together with *!&&!:
+
+      *!$ test -x /bin/bash && echo "/bin/bash is executable"!
+
+    There is also a shell *!||! which you can use as a "try this or else":
+
+      *!$ test -d /bin/bash || echo "/bin/bash is not a directory"!
+
+END-OF-PAGE
+demo bash 'test -d /bin/bash || echo "/bin/bash is not a directory"'
+      ;;
+    35) #-------------------- PAGE 35 --------------------
+      show << END-OF-PAGE
+
+  #!Standard I/O!
+
+    By default, processes start with three active file descriptors: 0, 1 and 2
+
+      0 is used for standard input (*!stdin! in C and *!std::cin! in C++)
+
+      1 is used for standard output (*!stdout! in C and *!std::cout! in C++)
+
+      2 is used for standard error (*!stderr! in C and *!std::cerr! in C++)
+
+END-OF-PAGE
+nodemo
+      ;;
+    36) #-------------------- PAGE 36 --------------------
+      show << END-OF-PAGE
+
+  #!I/O redirection!
+
+    You can use *!<! and *!>! for simple input and output redirection:
+
+      *!$ ls -t > outfile!        # save to _!outfile!
+      *!$ head -n 1 < outfile!    # show first line of _!outfile!
+
+    This displays the most recently modified file in the current directory
+
+    Never do the following, because it deletes _!myfile.txt!:
+
+      !r!!*!$ sort < myfile.txt > myfile.txt!!    # BAD
+
+    Since *!>! overwrites existing files, you want to make sure to redirect
+    output to a non-existing file (unless you intent to overwrite a file):
+
+      !g!!*!$ sort < myfile.txt > myfile.sorted.txt!!    # GOOD
+
+    Novice programmers typically set *!set -o noclobber! (bash) or *!set noclobber!
+    (tcsh) to avoid accidentally overwriting files with output redirects
+
+END-OF-PAGE
+nodemo
+      ;;
+    37) #-------------------- PAGE 37 --------------------
+      show << END-OF-PAGE
+
+  #!I/O redirection continued!
+
+    You can be explicit in bash and provide the file descriptor number, such as:
+
+      *!$ ls /doesnotexist 2> errfile!
+      *!$ cat errfile!
+      ls: /doesnotexist: No such file or directory
+
+    Use *!>>! to append to a file, a new file is created if it does not exist:
+
+      *!$ echo 'The end.' >> myfile.txt!
+
+    Use *!>&! to redirect and merge standard output and standard error:
+
+      *!$ ls /doesnotexist >& out+errfile!
+      *!$ cat out+errfile!
+      ls: /doesnotexist: No such file or directory
+
+    Use *!2>&1! to indicate that standard error should be redirected to
+    standard output, *!1>&2! redirects standard output to standard error
+
+END-OF-PAGE
+nodemo
+      ;;
+    38) #-------------------- PAGE 38 --------------------
+      show << END-OF-PAGE
+
+  #!Redirection via pipes!
+
+    In addition to redirection to a pathname, Unix has long allowed you to join
+    the output of a process to the input of another process with a pipe, such as
+    
+      *!$ ls -t | head -n 1!    # show most recently modified file
+      *!$ ls | wc -w!           # number of non-hidden files
+
+    Use *!|&! (tcsh) to pipe and merge both standard output and standard error
+    or redirect stderr to stdout with *!2>&1!, for example:
+
+      *!$ ls mayexist |& more!       # tcsh
+      *!$ ls mayexist 2>&1 | more!   # bash and tcsh
+
+    You can combine redirects with pipes, for example:
+
+      *!$ sort < myfile.txt | uniq > myfile.sorted.txt!
+
+    Programs can use the Unix *!pipe!(2) system call to create pipes
+
+END-OF-PAGE
+nodemo
+      ;;
+    39) #-------------------- PAGE 39 --------------------
+      show << END-OF-PAGE
+
+  #!tee FILE!
+
+    The *!tee! program is a "pipe fitter" that reads stdin then sends it to
+    stdout while saving the data to a file
+    
+    You can use *!tee! to split the output of one process to another into a
+    separate bytestream to stdout:
+
+      *!$ ls | tee outfile!
+
+    This displays the non-hidden files in the current directory and saves the
+    output to _!outfile!
+
+    You can fit multiple *!tee! pipes, for example:
+
+      *!$ ls | tee outfile1 | head -n 1 | tee outfile2!
+
+    We will see in Chapter 4 how useful *!tee! is with named pipes for
+    inter-process communication
+    
+END-OF-PAGE
+nodemo
+      ;;
+    40) #-------------------- PAGE 40 --------------------
+      show << END-OF-PAGE
+
+  #!Four more utilities!
+
+    *!echo!
+
+    *!date!
+
+    *!script!
+
+    *!unix2dos!
+
+END-OF-PAGE
+nodemo
+      ;;
+    41) #-------------------- PAGE 41 --------------------
+      show << END-OF-PAGE
+
+  #!echo [ARGUMENTS]: send arguments to stdout!
+
+    *!echo! is usually both a binary and a built-in that both support the *!-n!
+    option, but not other options
+
+    *!echo -n! do not send an end-of-line
+
+    *!echo -e! (bash) interpret backslash-escaped characters such as *!\\a!,
+    *!\\b!, *!\\n!, *!\\r!, *!\\\\!, *!\\xHH! (hex) *!\\0nnn! (octal)
+
+      *!echo \$'...'! (bash) also interprets backslash-escaped characters
+
+END-OF-PAGE
+nodemo
+      ;;
+    42) #-------------------- PAGE 42 --------------------
+      show << END-OF-PAGE
+
+  #!date [FORMAT]: set or display date!
+
+    Example specification formats:
+
+      *!$ date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"'!
+      DATE: 1987-11-21
+      TIME: 13:36:16
+
+      *!$ date -u "+%Y-%m-%dT%H:%M:%SZ"!
+      2017-12-31T14:05:53Z
+
+    Uses the *!TZ! environment variable to determine the time zone
+
+    Also lets you change the system date, requires root privileges
+
+    The conversion specifications are the same as *!strftime!(3)
+
+END-OF-PAGE
+demo 'date "+Today is %A %B %d, %Y"'
+      ;;
+    43) #-------------------- PAGE 43 --------------------
+      show << END-OF-PAGE
+
+  #!script: make typescript of terminal session!
+
+    This program lets you record your session in a file _!typescript! with lots
+    of control characters
+
+    *!script -r! record a session, type ^!^D! or *!exit! to end
+
+    *!script -a! append to the script
+
+    *!script -p! play back a session
+
+END-OF-PAGE
+rm -f typescript
+demo bash 'script -r' 'echo "this is a recorded message"' 'exit' 'script -p'
+      ;;
+    44) #-------------------- PAGE 44 --------------------
+      show << END-OF-PAGE
+
+  #!dos2unix and unix2dos!
+
+    Unix and DOS/Windows use different conventions for end of line
+
+      *!\\n! end of line character (Unix)
+
+      *!\\r\\n! carriage return and end of line character (DOS, Windows)
+    
+    An easy way to convert between the two is with *!dos2unix! and *!unix2dos!
+
+    You can also use *!tr -d '\\r'! to delete *!\\r! from stdin
+
+      *!$ cat memo.dos | tr -d '\\r' > memo.txt!
+
+END-OF-PAGE
+nodemo
+      ;;
+    45) #-------------------- PAGE 45 --------------------
+      show << END-OF-PAGE
+
+  #!Compression and archiving!
+
+    *!xz!, *!unxz! and *!xzcat!
+
+    *!gzip!, *!zcat!, and *!gunzip!
+
+    *!bzip2!, *!bzcat! and *!bunzip2!
+
+    *!zip! and *!unzip!
+
+    *!7z!
+
+    *!tar!
+
+END-OF-PAGE
+nodemo
+      ;;
+    46) #-------------------- PAGE 46 --------------------
+      show << END-OF-PAGE
+
+  #!xz!
+
+    An up and coming format; really nifty how you can just cat two xz files
+    together with one command
+
+    *!xz FILE1 FILE2 ...! compress files to _!FILE1.xz! _!FILE2.xz!
+
+    *!xz --stdout! sends compressed stream to stdout, same as *!xzcat!
+
+    Options *!-1!, *!-2!, ... *!-9! offer a choice of fast to best compression
+
+    You can use *!-! in place of a file to read from stdin
+
+  #!unxz: uncompess a .xz file!
+
+    *!unxz FILE1.xz FILE2.xz ...! decompress files to _!FILE1! _!FILE2!
+
+    *!unxz -l! list archive content
+
+    *!unxz --stdout! sends decompressed stream to stdout
+
+END-OF-PAGE
+nodemo
+      ;;
+    47) #-------------------- PAGE 47 --------------------
+      show << END-OF-PAGE
+
+  #!gzip!
+
+    An older but still frequently used compression format
+
+    *!gzip FILE1 FILE2 ...! compress files to _!FILE1.gz! _!FILE2.gz!
+
+    *!gzip --stdout! (or *!-c!) sends compressed stream to stdout, same as *!zcat!
+
+    Options *!-1!, *!-2!, ... *!-9! offer a choice of fast to best compression
+
+    You can use *!-! in place of a file to read from stdin
+
+  #!gunzip: uncompess a .gz file!
+
+    *!gunzip FILE1.gz FILE2.gz ...! decompress files to _!FILE1! _!FILE2!
+
+    *!gunzip -l! list archive content
+
+    *!gunzip --stdout! (or *!-c!) sends decompressed stream to stdout
+
+END-OF-PAGE
+nodemo
+      ;;
+    48) #-------------------- PAGE 48 --------------------
+      show << END-OF-PAGE
+
+  #!bzip2!
+
+    A Burrows-Wheeler block-sorting file compressor, better compression for text
+
+    *!bzip2 FILE1 FILE2 ...! compress files to _!FILE1.bz2! _!FILE2.bz2!
+
+    *!bzip2 --stdout! sends compressed stream to stdout, same as *!bzcat!
+
+    Options *!-1!, *!-2!, ... *!-9! offer a choice of fast to best compression
+
+    You can use *!-! in place of a file to read from stdin
+
+  #!bunzip2: uncompess a .bz2 file!
+
+    *!bunzip2 FILE1.bz2 FILE2.bz2 ...! decompress files to _!FILE1! _!FILE2!
+
+    *!bunzip2 -l! list archive content
+
+    *!bunzip2 --stdout! sends decompressed stream to stdout
+
+END-OF-PAGE
+nodemo
+      ;;
+    49) #-------------------- PAGE 49 --------------------
+      show << END-OF-PAGE
+
+  #!zip!
+
+    Supports the zip format, common in Windows
+
+    *!zip ARCHIVE FILE1 FILE2 ...! compress files to _!ARCHIVE.zip!
+
+    *!zip -d! delete file(s) from archive
+
+    *!zip -r! recursively adds files in directories to the archive
+
+    Options *!-1!, *!-2!, ... *!-9! offer a choice of fast to best compression
+
+    You can use *!-! in place of a file to read from stdin
+
+  #!unzip!
+
+    *!unzip ARCHIVE! decompress files from _!ARCHIVE.zip!
+
+    *!unzip -l! list archive contents
+
+END-OF-PAGE
+nodemo
+      ;;
+    50) #-------------------- PAGE 50 --------------------
+      show << END-OF-PAGE
+
+  #!7z!
+
+    Supports the newer 7-zip high-compression format !m!http://www.7-zip.org!!
+
+    *!7z OPTION ARCHIVE FILE1 FILE2 ...! compress files to _!ARCHIVE.7z!
+
+    *!7z a! add file(s) to archive
+
+    *!7z d! delete file(s) from archive
+
+    *!7z l! list archive contents
+
+    *!7z x! extract file(s) from archive
+
+    *!7z p! set password
+
+    Use *!7z! for files only, 7-zip does not store the owner/group of a file
+
+      To preserve file attributes and to backup directories you should use
+      *!tar! with *!7z!
+
+END-OF-PAGE
+nodemo
+      ;;
+    51) #-------------------- PAGE 51 --------------------
+      show << END-OF-PAGE
+
+  #!tar!
+
+    Originally "tape archive"
+    
+    A "tarball" refers to a format that combines and compresses multiple files
+
+    Allows you to package files together into an archive and newer versions
+    automatically recognize compression
+
+    The historical option command syntax (no dashes) is a bit tricky to use
+
+      *!tar c! create a tar (to stdout, unless *!f! is specified)
+
+      *!tar x! extract from a tar file
+
+      *!tar t! print the contents of a tar file
+
+      *!tar f FILE! read or write to the archive *!FILE! (usually a _!.tar!)
+
+      *!tar p! preserve file permissions and ACLs
+
+END-OF-PAGE
+nodemo
+      ;;
+    52) #-------------------- PAGE 52 --------------------
+      show << END-OF-PAGE
+
+  #!tar continued!
+
+    *!tar v! verbose mode
+
+    *!tar z! compress with *!gzip!(1)
+
+    *!tar -C DIR! change directory for this process
+
+    To create a compressed archive backup of all files in the current directory:
+
+      *!$ tar cvfpz backup-171231.tar.gz .!
+
+    To list the archive content:
+
+      *!$ tar tvf backup-171231.tar.gz!
+
+    To expand archive content into the current directory:
+
+      *!$ tar xvf backup-171231.tar.gz!
+
+END-OF-PAGE
+nodemo
+      ;;
+    53) #-------------------- PAGE 53 --------------------
+      show << END-OF-PAGE
+
+  #!Messaging!
+
+    *!write USER [TTY]! starts an interactive session to send messages to
+    another *!USER! on *!TTY!, end the messages with ^!^D! (EOF)
+
+    *!mesg y! turns receiving of messages on
+
+    *!mesg n! turns receiving of messages off
+
+    Type ^!^L! (CONTROL-L) to redraw the screen if it gets garbled with messages
+
+END-OF-PAGE
+nodemo
+      ;;
+    54) #-------------------- PAGE 54 --------------------
+      show << END-OF-PAGE
+
+  #!A quick summary!
+
+    Shell commands are utilities, which are built-in or are separate programs
+
+    "Globbing" for example *!ls *.txt!, to prevent globbing, use *!'...'!,
+    *!"..."!, or *!\$'...'! (last for bash only)
+
+    *!CMD <! redirect stdin from a file
+
+    *!CMD >! redirect stdout to a file, *!>>! appends to the file
+
+    *!CMD 2>! redirect stderr to a file, *!2>>! appends to the file
+
+    *!CMD 2>&1! redirect (merge) stderr to stdout
+
+    *!CMD >&! redirect stdout and stderr (merged) to a file
+
+    *!CMD1 | CMD2! pipe two commands, sending stdout of *!CMD1! to stdin of *!CMD2!
+
+    *!CMD1 |& CMD2! (tcsh) pipe, stdout and stderr of *!CMD1! to stdin of *!CMD2!
+
+END-OF-PAGE
+nodemo
+      ;;
+    55) #-------------------- PAGE 55 --------------------
+      show << END-OF-PAGE
+
+  #!A quick summary!
+
+    *!CMD --! is often used to end options list
+
+    *!CMD -! is often used to denote stdin where an input file argument is expected
+
+    *!CMD1 ; CMD2! executes two commands in order
+
+    *!CMD &! execute command in the background, use *!fg! to bring it back
+
+    *!nohup CMD &! background-execute command but not killed when shell terminates
+
+    *!CMD1 & CMD2! same, with the second command executing in the foreground
+
+    *!CMd1 && CMD2! conditionally execute the second command if the first succeeded
+
+    *!CMD1 || CMD2! conditionally execute the second command if the first failed
+
+    *!\$?! holds the exit status of the last command
+
+END-OF-PAGE
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=55
+      ;;
+  esac
+done

@@ -1,0 +1,1125 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch4.txt
+# Chapter 4 - The Filesystem
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 4 - The Filesystem!
+
+
+END-OF-PAGE
+title="Chapter 4 - The Filesystem"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f dragon "Beware the filesystem slayer: sudo rm -rf /"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Overview!
+
+    • The hierarchical filesystem
+
+    • Pathnames
+
+    • Working with directories
+
+    • Access permissions
+
+    • Access control lists
+
+    • Hard and soft links
+
+    • Named pipes
+
+END-OF-PAGE
+demo 'cowsay -f surgery "The Linux filesystem? I thought you said to operate on Linus nervous system."'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!The hierarchical filesystem!
+
+    The Unix/Linux filesystem is organized as a tree with root "/", here shown
+    as a "directory tree" of directories with some of their subdirectories:
+
+        /
+        ├── bin
+        │   └── ...
+        :
+        ├── home
+        │   ├── john
+        │   │   └── ...
+        │   └── sam
+        │       ├── bin
+        │       │   └── ...
+        │       └── projects
+        │           └── ...
+        :
+        └── var
+            └── ...
+    
+END-OF-PAGE
+demo 'tree -d -L 2 / || cowsay "This demo uses tree but there is no tree, install tree please"'
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!The hierarchical filesystem continued!
+
+    Rather than creating newly rooted trees, adding drives in the Unix world
+    creates subtrees off the single hierarchical filesystem
+
+    This means that drives are located on the tree
+
+      Unix/Linux             Mac OS X
+
+      /                      /
+      ├── bin                ├── bin
+      │   └── ...            │   └── ...
+      :                      :  
+      ├── mnt                ├── Volumes
+      │   ├── driveA         │   ├── Macintosh HD -> /
+      │   ├── driveB         │   ├── MyBackups
+      :   :                  :   :
+      │   └── ...            │   └── ...
+      :                      :              
+
+END-OF-PAGE
+demo 'test -d /mnt || cowsay -f tux "This aint Linux: you do not have a /mnt that I wish to climb"'
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Pathnames!
+
+    Absolute pathnames start with a _!/! while relative pathnames don't
+
+    Directories in a path are separated by a _!/!
+
+    The absolute pathname to your home directory is specified with a _!~!
+
+      Also stored in environment variable *!HOME!
+
+      So _!~/projects/foo/main.cpp! and _!\$HOME/projects/foo/main.cpp! is the
+      same _!main.cpp! in subdirectory _!projects/foo! in the home directory
+
+    The absolute pathname to the home directory of a user is _!~username!
+
+    Your current working directory is _!.! which has an absolute path returned
+    by the *!pwd! command
+
+END-OF-PAGE
+demo 'echo "Your home directory is $HOME"'
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!Hiden files!
+
+    Hidden files and directories start with a _!.! (dot)
+
+    For example _!.bashrc! in your home directory (more about _!.bashrc! later)
+
+    There are two special cases:
+
+      _!.!  the current directory
+
+      _!..! the parent directory
+
+      These two can be used in pathnames, for example
+
+        *!$ ls ../projects!     # list _!projects! files of the parent dir
+
+        *!$ ./ch4.pages!        # execute _!ch4.pages! in the current dir
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Working with directories!
+
+    *!mkdir DIR! creates a directory _!DIR! in the current directory
+
+    *!mkdir -P DIR1/DIR2/...! creates intermediary subdirectories too
+
+    *!rmdir DIR! removes an empty directory _!DIR!
+
+    *!cp -r SOURCEDIR DESTDIR! recursively copies a directory with its content
+
+    *!cp SOURCEFILE ... DESTDIR! copies one or more files to a directory
+
+    *!mv SOURCEDIR DESTDIR! moves (or renames) a directory
+
+    *!mv SOURCEFILE ... DESTDIR! moves one or more files to a directory
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Working with directories continued!
+
+    *!cd PATH! changes the current directory to _!PATH!
+
+    *!cd -! go back to last dir visited
+
+    *!cd ..! change dir to parent dir
+
+    *!cd! change dir to home
+
+    You can set the *!CDPATH! environment variable to let *!cd! use shortcuts
+
+      *!$ ls ~/projects/foo!                   # ~/projects/foo is a directory
+      common.cpp main.cpp                   # with main.cpp
+      *!$ export CDPATH=~/projects:~/memos!    # shortcuts to projects and memos
+      *!$ cd foo!                              # changes to ~/projects/foo
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Some important standard directories!
+
+    _!/! root directory
+    _!/bin! programs (binaries)
+    _!/dev! devices, such as _!/dev/tty!, _!/dev/null!, _!/dev/urandom!
+    _!/etc! machine-local configuration files
+    _!/etc/opt! optional software packages configuration files
+    _!/home! user home directories (_!/Users! in Max OS X)
+    _!/lib! shared libraries
+    _!/mnt! mount point for temporarily mounted filesystems
+    _!/opt! optional software packages installed
+    _!/proc! kernel and process information virtual filesystem
+    _!/root! home directory of the root account
+    _!/sbin! essential system programs (binaries)
+    _!/tmp! temporary files
+    _!/usr! major hierarchy subdirectories with files shared with all users
+    _!/usr/bin! most user commands and utility programs
+    _!/usr/local! "locally" installed software that was not part of the OS
+    _!/var! variable data, such as _!/var/log! logs and _!/var/spool! spooled data
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Unix file types!
+
+    *!$ ls -l memo!
+    -rwxr-x---+   1 engelen  staff  20774 Nov 27 13:52 memo
+
+    - regular file
+
+    d directory
+
+    l symbolic link
+
+    b block special device, random-accessable devices such as a disks in _!/dev!
+
+    c character special device, a serial input stream such as _!/dev/tty!
+
+    p named pipe (FIFO) for unidirectional inter-process communication
+
+    s socket for duplex-capable inter-process communication
+
+    D door for client-server inter-process communication (Solaris)
+
+END-OF-PAGE
+demo 'ls -l /dev/tty'
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!Access permissions!
+
+    *!$ ls -l memo!
+    -rwxr-x---+   1 engelen  staff  20774 Nov 27 13:52 memo
+     ╰┬╯╰┬╯╰┬╯│   │ ╰──┬──╯  ╰─┬─╯  ╰─┬─╯ ╰─────┬────╯
+    user │  │ │   │  owner   group   size    date modified
+         │  │ │   │ 
+      group │ │  number of hard links
+            │ │ 
+        other ACL
+
+      "r" indicates permission to read 
+
+      "w" indicates permission to write
+
+      "x" indicates permission to execute (or chdir and list directory contents)
+
+      an "s" in place of "x" indicates setuid or setgid (more about this later)
+
+      "+" indicates the ACL flag, meaning the file is under access control
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!Changing permissions with chmod!
+
+    *!chmod! accepts either octal notation or symbolic notation to change
+    permissions
+    
+      *!chmod 755 file!   # rwxr-xr-x
+
+      *!chmod 644 file!   # rw-r--r--
+
+      *!chmod -w file!    # make file write-protected
+
+      *!chmod u+x file!   # make file executable by user
+
+      *!chmod go+r file!  # make file readable by group and other
+
+    Permissions of new files is controlled by *!umask!
+
+      *!umask 022! prevents group members and others to write to new files
+
+      *!umask 077! prevents group members and others to read/write/exec new files
+
+END-OF-PAGE
+demo 'rm -f ch4_demo_testfile' 'touch ch4_demo_testfile' 'ls -l ch4_demo_testfile' 'chmod go-r ch4_demo_testfile' 'ls -l ch4_demo_testfile'
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!Changing ownership and group!
+
+    *!chown OWNER FILE1 FILE2 ...! changes the ownership to *!OWNER!
+
+    *!chown :GROUP FILE1 FILE2 ...! changes the group to *!GROUP!
+
+    *!chown OWNER:GROUP FILE1 FILE2 ...! changes both ownership and group
+
+    *!chgrp GROUP FILE1 FILE2 ...! changes the group to *!GROUP!
+
+    If the file argument is a symbolic link, the link is followed unless option
+    *!-h! is used to change ownership and group of the symbolic link
+
+      *!chown -h! if the file is a symbolic link, change owner/group of the link
+
+      *!chown -R! recursively change files in directory hierarchy
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Setuid and setgid!
+
+    When you execute a file that has setuid ("set user ID") permission, the
+    process executing the file takes on the privileges of the file's owner
+
+    Likewise, when you execute a file that has setgid ("set group ID")
+    permission, the process executing the file takes on the group privileges
+
+    ┌────────────────────────────────────────────────────────────┐
+    │  Do not give shell scripts setuid/setgid permission and    │ 
+    │  minimize use of setuid and setgud programs owned by root  │ 
+    └────────────────────────────────────────────────────────────┘
+
+    *!$ chmod u+s myprog1!    # or use chmod 4755 to change to rwsr-xr-x
+    *!$ ls -l myprog!
+    -rwsr-xr-x   1 engelen  staff   16385 Dec 11 17:15 myprog1
+
+    *!$ chmod g+s myprog2!    # or use chmod 2755 to change to rwxr-sr-x
+    *!$ ls -l myprog2!
+    -rwxr-sr-x   1 engelen  staff   16385 Dec 11 17:15 myprog2
+
+END-OF-PAGE
+nodemo
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!The sticky bit!
+
+    Since *!chmod 4755! sets user ID and *!chmod 2755! sets group ID, you may have
+    guessed that *!chmod 1755! should set something too, but what?
+
+    Makes no sense for the process executing the file to get "other" privileges
+
+    *!$ chmod 1755 myprog3!
+    *!$ ls -l myprog3!
+    -rwxr-xr-t   1 engelen  staff   16385 Dec 11 17:15 myprog3
+
+    This used to mean that the file when executed should remain in the swap
+    area of the disk after termination
+
+    Now used as a "restricted deletion flag" in Linux and Mac OS X
+
+    Files with the sticky bit set can only be deleted by a user with root
+    privileges or by a user who owns the file and can modify the directory
+    where the file resides
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!ACLs: access control lists!
+
+    ACLs provide finer-grained control over *!chmod! by providing specific
+    privileges to specific users to access specific files and directories
+
+    Most utilities that copy, move or archive files do not preserve ACLs,
+    unless specific options such as *!-p! are used
+
+    ACL implementation differ across operating systems and we will look at two:
+
+      Linux *!setfacl! and *!getfacl! to set/get ACLs
+
+      Mac OS X *!chmod +a!, *!chmod -a! and *!chmod =a!
+
+END-OF-PAGE
+nodemo
+      ;;
+    17) #-------------------- PAGE 17 --------------------
+      show << END-OF-PAGE
+
+  #!Linux ACLs!
+
+    Enabling ACLs rquires the "acl" package to be installed
+
+    The "acl" package supports ACLs for "ext2", "ext3" and "ext4" filesystems
+
+    You may need to change _!/etc/fstsab! to add "acl" to the options list, for
+    example to set ACLs for your home directory:
+
+      *!$ grep home /etc/fstab!
+      LABEL=/home               /home              ext4    defaults,acl,     1 2
+
+      Then remount the _!/home! before you can use ACLs
+
+      *!$ mount -v -o remount /home!
+
+END-OF-PAGE
+nodemo
+      ;;
+    18) #-------------------- PAGE 18 --------------------
+      show << END-OF-PAGE
+
+  #!Linux ACLs: getfacl!
+
+    *!getfacl! shows the ACL rules for a file
+
+      *!$ getfacl report!
+      # file: report
+      # owner: max
+      # group: pubs
+      user::rw-
+      group::r--
+      other:r--
+
+      This example shows that _!report! has no ACL rule
+
+END-OF-PAGE
+nodemo
+      ;;
+    19) #-------------------- PAGE 19 --------------------
+      show << END-OF-PAGE
+
+  #!Linux ACLs: setfacl!
+
+    *!setfacl -m u:USER:RWX FILE1 FILE2 ...! sets an ACL rule for *!USER! to
+    access files with permissions *!RWX!
+
+      *!$ setfacl u:sam:rw- report!
+      *!$ getfacl report!
+      # file: report
+      # owner: max
+      # group: pubs
+      user::rw-
+      user:sam:rw-
+      group::r--
+      other:r--
+
+      This example shows that sam can read and write _!report! while all other
+      users and groups can only read it
+
+END-OF-PAGE
+nodemo
+      ;;
+    20) #-------------------- PAGE 20 --------------------
+      show << END-OF-PAGE
+
+  #!Linux ACLs: setfacl continued!
+
+    *!setfacl -x u:USER FILE1 FILE2 ...! removes an ACL rule for *!USER!
+
+    *!setfacl -m g:GROUP:RWX FILE1 FILE2 ...! sets an ACL rule for *!GROUP!
+
+    *!setfacl -x g:GROUP FILE1 FILE2 ...! removes an ACL rule for *!GROUP!
+
+    *!setfacl -d! sets default rules for a directory
+
+      *!$ setfacl -d -m g:pubs:r-x projects! 
+
+      This sets a default rule for groups in _!projects! to *!r-x!
+
+END-OF-PAGE
+nodemo
+      ;;
+    21) #-------------------- PAGE 21 --------------------
+      show << END-OF-PAGE
+
+  #!Mac OS X ACLs!
+
+    *!chmod +a "USER allow|deny PERMISSIONS" FILE1 FILE2 ...! sets *!PERMISSIONS!
+    (read, write, append, and/or execute) for *!USER! to access files
+
+    *!chmod -a "USER allow|deny PERMISSIONS" FILE1 FILE2 ...! removes *!PERMISSIONS!
+    (read, write, append, and/or execute) for *!USER! to access files
+
+    *!chmod =a "USER allow|deny PERMISSIONS" FILE1 FILE2 ...! replaces *!PERMISSIONS!
+    (read, write, append, and/or execute) for *!USER! to access files
+
+    *!ls -e! displays the ACL rules
+
+      *!$ chmod +a "sam allow read,write" report!
+      *!$ ls -le report!
+      -rwxr-x---+   1 max  staff  20774 Nov 27 13:52 report
+      0: user:sam allow read,write
+
+    *!chmod +a# NUM ...! sets rule number *!NUM!, you can also use *!# NUM!
+    with options *!-a! and *!=a! to select ACL rule entries to remove/replace
+
+END-OF-PAGE
+nodemo
+      ;;
+    22) #-------------------- PAGE 22 --------------------
+      show << END-OF-PAGE
+
+  #!Hard links!
+
+    Hard links are ordinary directory entries
+
+      *!ln SOURCE DEST! creates a hard link _!DEST! pointing to _!SOURCE!
+
+    Hard links can only point to files located in the same filesystem and can
+    only point to files, not to directories
+
+    Hard links are removed with *!rm!, which essentially removes a directory
+    entry; if no directory has an entry for the file, the file is deleted
+
+    *!ls -l! shows the number of hard links to a file
+
+    *!ls -i! shows the inode number of files and directories; you can use this
+    number to identify which files are hard linked in case of doubt, since file
+    names are not unique
+
+END-OF-PAGE
+demo 'cowsay -f sheep "I suggest to try the demo on the next page"'
+      ;;
+    23) #-------------------- PAGE 23 --------------------
+      show << END-OF-PAGE
+
+  #!Example hard link: initial hierarchy!
+
+                       projects
+                      ╱        ╲
+                    foo        bar
+                   ╱   ╲          ╲
+            main.cpp  common.cpp  main.cpp
+
+    *!$ ls -l projects/foo!
+    -rw-r--r--  1 engelen  staff   6789 Dec 15 15:31 common.cpp
+    -rw-r--r--  1 engelen  staff  12345 Dec 15 15:31 main.cpp
+    *!$ ls -l projects/bar!
+    -rw-r--r--  1 engelen  staff   1234 Dec 15 15:31 main.cpp
+
+
+
+END-OF-PAGE
+if [ ! -d $workd/projects/foo ]; then mkdir -P $workd/projects/foo; fi
+if [ ! -d $workd/projects/bar ]; then mkdir -P $workd/projects/bar; fi
+rm -f $workd/projects/foo/* $workd/projects/bar/*
+cat > $workd/projects/foo/main.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hi, I'm foo" << std::endl;
+}
+END
+cat > $workd/projects/bar/main.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hi, I'm bar" << std::endl;
+}
+END
+cat > $workd/projects/foo/common.cpp << END
+#include <iostream>
+void common()
+{
+  std::cout << "Hi, I'm common" << std::endl;
+}
+END
+demo 'ls -l projects/foo projects/bar'
+      ;;
+    24) #-------------------- PAGE 24 --------------------
+      show << END-OF-PAGE
+
+  #!Example hard link: creating a hard link!
+
+                       projects
+                      ╱        ╲
+                    foo        bar
+                   ╱   ╲      ╱   ╲
+            main.cpp  common.cpp  main.cpp
+
+    *!$ ln projects/foo/common.cpp projects/bar!
+    *!$ ls -l projects/foo!
+    -rw-r--r--  2 engelen  staff   6789 Dec 15 15:31 common.cpp
+    -rw-r--r--  1 engelen  staff  12345 Dec 15 15:31 main.cpp
+    *!$ ls -l projects/bar!
+    -rw-r--r--  2 engelen  staff   6789 Dec 15 15:31 common.cpp
+    -rw-r--r--  1 engelen  staff   1234 Dec 15 15:31 main.cpp
+
+END-OF-PAGE
+demo 'ln projects/foo/common.cpp projects/bar; ls -l projects/foo projects/bar'
+      ;;
+    25) #-------------------- PAGE 25 --------------------
+      show << END-OF-PAGE
+
+  #!Example hard link: deleting a hard link!
+
+                       projects
+                      ╱        ╲
+                    foo        bar
+                   ╱          ╱   ╲
+            main.cpp  common.cpp  main.cpp
+
+    *!$ rm projects/foo/common.cpp!
+    *!$ ls -l projects/foo!
+    -rw-r--r--  1 engelen  staff  12345 Dec 15 15:31 main.cpp
+    *!$ ls -l projects/bar!
+    -rw-r--r--  1 engelen  staff   6789 Dec 15 15:31 common.cpp
+    -rw-r--r--  1 engelen  staff   1234 Dec 15 15:31 main.cpp
+
+
+END-OF-PAGE
+demo 'rm projects/foo/common.cpp; ls -l projects/foo projects/bar'
+      ;;
+    26) #-------------------- PAGE 26 --------------------
+      show << END-OF-PAGE
+
+  #!Example hard link: deleting a hard link!
+
+                       projects
+                      ╱        ╲
+                    foo        bar
+                   ╱              ╲
+            main.cpp              main.cpp
+
+    *!$ rm projects/bar/common.cpp!
+    *!$ ls -l projects/foo!
+    -rw-r--r--  1 engelen  staff  12345 Dec 15 15:31 main.cpp
+    *!$ ls -l projects/bar!
+    -rw-r--r--  1 engelen  staff   1234 Dec 15 15:31 main.cpp
+
+
+
+END-OF-PAGE
+demo 'rm projects/bar/common.cpp; ls -l projects/foo projects/bar'
+      ;;
+    27) #-------------------- PAGE 27 --------------------
+      show << END-OF-PAGE
+
+  #!Symbolic links!
+
+    Symbolic links (soft links) are ordinary files with a bit set to indicate
+    that they contain path information
+
+      *!ln -s SOURCE DEST! creates a symbolic link *!DEST! pointing to *!SOURCE!
+
+    Symbolic links can point to files and directories
+
+    Symbolic links are removed with *!rm!, this does not affect files pointed to
+
+    Symbolic links simply store pathnames, with some surprising results:
+
+      !r!!*!$ ln -s projects/foo/common.cpp projects/bar/common.cpp!!    # BAD
+
+        _!projects/bar/common.cpp! points to _!projects/bar/projects/foo/common.cpp!
+
+      !g!!*!$ ln -s ~/projects/foo/common.cpp projects/bar/common.cpp!!  # GOOD
+
+      !g!!*!$ ln -s ../foo/common.cpp projects/bar/!!               # ALSO GOOD
+
+END-OF-PAGE
+demo 'rm -f ch4_demo_test????' 'touch ch4_demo_testfile' 'ls -l ch4_demo_testfile' 'ln -s ch4_demo_testfile ch4_demo_testlink' 'ls -l ch4_demo_test????'
+      ;;
+    28) #-------------------- PAGE 28 --------------------
+      show << END-OF-PAGE
+
+  #!Dereferencing symbolic links!
+
+    Many utilities have "dereference" and "no-dereference" options:
+
+      *!-L! and *!--dereference! force (recursive) dereferencing of symbolic links
+
+      *!-H! partial dereference: only dereference files given as arguments
+
+      *!-P! and *!--no-dereference! never dereferences symbolic links
+
+    Most utilities dereference symbolic links automatically when the symbolic
+    link is used as a command argument, but directory traversing commands
+    typically do not dereference symbolic links
+
+    When archiving or backing up directories that contain symbolic links, use
+    option *!-L! to dereference the links, because links may point to files
+    that are not part of the directory hierarchy that you want to backup:
+
+      *!$ tar cvfLpz backup-171231.tar.gz projects!
+
+END-OF-PAGE
+demo 'cowsay -f sheep "I suggest to try the next page demo"'
+      ;;
+    29) #-------------------- PAGE 29 --------------------
+      show << END-OF-PAGE
+
+  #!Dangling symbolic links!
+
+    When the file pointed to by a symbolic link is deleted, dereferencing leads
+    to errors
+    
+      *!$ cd projects/bar!
+      *!$ ln -s ../foo/common.cpp .!
+      *!$ rm ../foo/common.cpp!
+      *!$ more common.cpp!
+      common.cpp: No such file or directory
+
+END-OF-PAGE
+if [ ! -d $workd/projects/foo ]; then mkdir -P $workd/projects/foo; fi
+if [ ! -d $workd/projects/bar ]; then mkdir -P $workd/projects/bar; fi
+rm -f $workd/projects/foo/* $workd/projects/bar/*
+cat > $workd/projects/foo/main.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hi, I'm foo" << std::endl;
+}
+END
+cat > $workd/projects/bar/main.cpp << END
+#include <iostream>
+int main()
+{
+  std::cout << "Hi, I'm bar" << std::endl;
+}
+END
+cat > $workd/projects/foo/common.cpp << END
+#include <iostream>
+void common()
+{
+  std::cout << "Hi, I'm common" << std::endl;
+}
+END
+demo 'cd projects/bar' 'ln -s ../foo/common.cpp .' 'rm ../foo/common.cpp' 'more common.cpp'
+      ;;
+    30) #-------------------- PAGE 30 --------------------
+      show << END-OF-PAGE
+
+  #!Pathnames and symbolic links!
+
+    Symbolic links to directories are dereferenced when used in pathnames
+    
+    When navigating pathnames with symbolic links to other directories we can
+    get some surprising results:
+
+      *!$ cd projects/foo!
+      *!$ ln -s ../bar .!     # projects/foo/bar -> projects/bar
+      *!$ cd bar!
+      *!$ ln -s ../foo .!     # projects/bar/foo -> projects/foo
+      *!$ cd foo!
+      *!$ pwd!
+      /home/sam/projects/foo/bar/foo
+      *!$ cd ..!
+      *!$ pwd!
+      /home/sam/projects
+
+END-OF-PAGE
+demo 'cd projects/foo' 'ln -s ../bar .' 'cd bar' 'ln -s ../foo .' 'cd foo' 'pwd' 'cd ..' 'pwd'
+      ;;
+    31) #-------------------- PAGE 31 --------------------
+      show << END-OF-PAGE
+
+  #!Named pipes!
+
+    A named pipe (FIFO) can be used to connect the output of one process to the
+    input of another process
+
+      *!mkfifo PIPE! creates a named _!PIPE! and *!rm PIPE! removes a named _!PIPE!
+
+    A named pipe looks like a file in the filesystem, but it is a FIFO queue
+    that connects the output of one process to the input of another process
+
+      TERMINAL 1                        TERMINAL 2
+      *!$ mkfifo testpipe!
+      *!$ cat < testpipe!                  *!$ echo 'Here is some text' > testpipe!
+      Here is some text
+      *!$ rm testpipe!
+
+    The receiving process waits for output from a sending process and vice
+    versa (process rendezvous)
+
+END-OF-PAGE
+demo 'mkfifo ch4_demo_pipe' 'cat < ch4_demo_pipe &' 'echo "Here is some text" > ch4_demo_pipe' 'rm -f ch4_demo_pipe'
+      ;;
+    32) #-------------------- PAGE 32 --------------------
+      show << END-OF-PAGE
+
+  #!Named pipes and tee!
+
+    Earlier we saw how we can use *!tee! to split input into a file and stdout
+
+    We also saw how we can use pipes to connect the output of one process to
+    the input of another
+
+    We can combine the two together to connect the output of one process to the
+    input of multiple processes
+
+    This example sends *!ls -l! to both *!wc -l! and *!grep 'testpipe'!:
+
+      *!$ mkfifo testpipe!
+      *!$ wc -l < testpipe &!
+      *!$ ls -l | tee testpipe | grep 'testpipe'!
+      *!$ rm testpipe!
+
+END-OF-PAGE
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=32
+      ;;
+  esac
+done

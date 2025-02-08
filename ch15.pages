@@ -1,0 +1,719 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch15.txt
+# Chapter 15 - sed
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 15 - sed!
+
+
+END-OF-PAGE
+title="Chapter 15 - sed"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay "I said it: use sed to stream ed!"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!sed!
+
+    The *!sed! (stream editor) utility is a powerful batch (noninteractive) editor
+
+    *!sed 'sed script goes here' FILE1 FILE2...! applies a list of sed commands
+    to the specified files or to stdin when no files are specified
+
+    *!sed -f script.sed FILE1 FILE2...! applies _!script.sed! to the specified
+    files or to stdin when no files are specified
+
+    Options:
+
+      *!-n! do not copy lines to stdout except as specified by *!print! instructions
+
+      *!-i EXTENSION! edit file in place, rather than sending the changes to
+      stdout, using *!EXTENSION! to save a backup file
+
+      *!-f FILE! read sed script _!FILE!
+
+      *!-e COMMAND! append the *!COMMAND! to the list of commands to perform
+
+END-OF-PAGE
+nodemo
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!sed scripts!
+
+    A sed script consists of a sequence of lines with commands:
+
+      *!ADDRESS,ADDRESS COMMAND ARG1 ARG2 ...!
+
+    where *!ADDRESS! and *!,ADDRESS! are optional
+
+    The sed utility performs the following actions given input:
+
+      1. read one line of input from the file(s) specified
+
+      2. for each command in the script addressed by *!ADDRESS,ADDRESS! (when
+         provided, otherwise the action is unconditional), perform the
+         corresponding *!COMMAND! on the line of input
+
+      3. repeat step 2 until all commands have been performed on the current
+         line of input
+
+      4. go to 1 if there is another line of input or another file to process
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!sed addresses!
+
+    A sed *!ADDRESS! is one of the following:
+
+      *!NUM! a line number or *!\$! which represents the last line
+
+      *!/PATTERN/! a sed regular expression pattern, selects lines matching the
+      specified pattern, the *!/! delimiters are often used but arbitrary in sed
+
+    *!ADDRESS1,ADDRESS2! selects all lines from *!ADDRESS1! that matches a line
+    to the *!ADDRESS2! that matches a line
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!sed example!
+
+    This example uses the *!s///g! command that we have seen earlier with Vim
+    to substitute text with *!s/PATTERN/TEXT/g! where *!g! stands for global to
+    continue substituting more matches on the same line:
+
+      *!$ cat surprise.txt!
+      Hi!
+      I bought you a present! I think you will like my present.
+      *!$ sed 's/present/donkey/g' surprise.txt!
+      Hi!
+      I bought you a donkey! I think you will like my donkey.
+
+END-OF-PAGE
+cat > $workd/ch15_demo_surprise.txt << EOF
+Hi!
+I bought you a present! I think you will like my present.
+EOF
+demo 'cat ch15_demo_surprise.txt' "sed 's/present/donkey/g' ch15_demo_surprise.txt"
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!sed regular expressions!
+
+      *!.!                  wildcard, matches any character except newline
+
+      *![abc0-9]!           character class with ranges, *![^abc0-9]! is negated
+
+      *!\(PATTERN\)!        grouping (group capture)
+
+      *!PATTERN*!           zero or more
+
+      *!^PATTERN!           match at begin of line
+
+      *!PATTERN\$!           match at end of line
+
+    Use *!\\n! to refer to the nth group capture contents matched
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!sed regular expressions!
+
+    Use sed with option *!-E! to enable extended regular expression syntax,
+    which adds the following constructs:
+
+      *!PATTERN1|PATTERN2! alternation
+
+      *!(PATTERN)!         grouping (group capture)
+
+      *!PATTERN?!          zero or one
+
+      *!PATTERN+!          one or more
+
+      *!PATTERN{N}!        N times
+
+      *!PATTERN{N,}!       N or more times
+
+      *!PATTERN{N,M}!      N to M times
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!sed examples!
+
+    *!$ cat surprise.txt!
+    Hi!
+    I bought you a present! I think you will like my present.
+    !*!$ sed -e 's/[Hh]i!/Hello,/' -e 's/^I/We/' surprise.txt!!
+    Hello,
+    We bought you a present! I think you will like my present.
+
+END-OF-PAGE
+demo 'cat ch15_demo_surprise.txt' "sed -e 's/[Hh]i!/Hello,/' -e 's/^I/We/' ch15_demo_surprise.txt"
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!sed commands!
+
+    *!a! append text to the selected line:
+
+      *!a\\!
+      *!  TEXT\\!
+      *!  ...\\!
+      *!  TEXT!
+
+    *!c! change the selected line and replace it with new text:
+
+      *!c\\!
+      *!  TEXT\\!
+      *!  ...\\!
+      *!  TEXT!
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!sed commands continued!
+
+    *!i! insert text before the selected line:
+
+      *!i\\!
+      *!  TEXT\\!
+      *!  ...\\!
+      *!  TEXT!
+
+    *!d! delete the selected line
+
+    *!p! print selected line immediately, subsequent commands will not change it,
+    this command is best used with sed option *!-n!
+
+    *!q! quit sed immediately
+
+END-OF-PAGE
+nodemo
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!sed examples!
+
+    *!/TODO/i\\!
+    *!/* This line is not finished: */! # inserts a line above the line with TODO
+
+    *!10d!                              # delete line 10
+
+    *!10,20d!                           # delete line 10 to 20
+
+    *!/TODO/p!                          # print lines with TODO only when used
+                                     # with option *!-n!
+
+    *!/\\/\\*/,/\\*\\//d!                   # delete from line with /* to line with */
+
+    *!/^#/d!                            # deletes lines that start with a #
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!sed commands continued!
+
+    *!s/PATTERN/TEXT/FLAGS! substitute text that matches *!PATTERN! with *!TEXT!,
+    where *!FLAGS! is one or more of:
+
+      *!NUM! number: make substitution only for the *!NUM!'th match
+
+      *!g! global: replace all nonoverlapping matches of *!PATTERN! on a line
+
+      *!p! print: print the modified line immediately
+
+      *!w FILE! write: sends modified line to _!FILE!
+
+      A *!&! in the *!TEXT! is replaced by the text that matches the *!PATTERN!
+
+      A *!\\NUM! in the *!TEXT! is replaced by the text that is captured by the
+      *!NUM!'th *!\\(...\\)! group, *!\\1! is the text of the first group, *!\\2! is
+      the text of the second group, etc.
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!sed examples!
+
+    *!s/#.*//!                       # remove #-comments (replace with empty)
+
+    *!s/[A-Z]{3}/"&"/g!              # quote all 3-letter acronyms
+                                  # this uses ERE syntax with option *!-E!
+
+    *!s/the \\([Uu]nix\\) system/\\1/g! # remove "the" and "system"
+
+    *!s/'\([^']\)*'/"\\1"/g!          # replace '-quoted strings by "-quoted strings
+
+    *!$ sed 's/^[^0-9]*\\([0-9].*$\\)/\\1/' << 'END'!  # note the use of 'END'
+    *!> Three years from now it will be 2021 and I will be 27 years old.!
+    *!> My sister will be 25 years of age.!
+    *!> And I will spend \$100 on presents!
+    *!> END!
+    2021 and I will be 27 years old.
+    25 years of age.
+    100 on presents
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!sed control structures!
+
+    You can use!*! ! !!to negate a pattern match
+
+    !*!ADDRESS,ADDRESS ! COMMAND ARG1 ARG2 ...!! selects lines not matched by
+    the addresses specified, for example !*!3!d!! deletes all lines except line 3
+
+    You can use *!{! *!}! to group commands and use *!;! to separate commands
+    on the same line, for example:
+
+      *!$ sed -n '/TODO/ { s/blame/praise/g; p; }' buggy.cpp!
+
+END-OF-PAGE
+cat > $workd/ch15_demo_buggy.cpp << EOF
+#include <stdio.h>
+/*
+TODO: This simple example is created by Sam, blame him for this stuff...
+*/
+int main()
+{
+  printf("Hello world!\n");
+  return 0;
+}
+EOF
+demo 'cat ch15_demo_buggy.cpp' "sed -n '/TODO/ { s/blame/praise/g; p; }' ch15_demo_buggy.cpp"
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!Advanced sed feature: the hold space!
+
+    *!sed! reads each line into the "pattern space" and modifies its contents
+    by the specified commands
+
+    You can use the "hold space" to store lines from the pattern space
+
+    *!h! hold: copies the pattern space to the hold space
+
+    *!H! hold: appends a newline and the pattern space to the hold space
+
+    *!g! get: copies the hold space to the pattern space
+
+    *!G! get: appends a newline and the hold space to the pattern space
+
+    *!x! exchange: swaps the hold space with the pattern space
+
+    *!n! next: read the next line into the pattern space
+
+    *!N! next: append a newline and the next line to the pattern space
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!sed example, see also Ch.15 examples pages 658-668!
+
+    *!$ cat s1.sed!
+    h; # copy pattern space (line read) to the hold space
+    n; # read the next line into the pattern space
+    p; # print the pattern space
+    g; # copy the hold space to the pattern space
+    p; # print the pattern space
+    *!$ cat lines!
+    Line one.
+    The second line.
+    The third.
+    This is line four.
+    Five.
+    This is the sixth sentence.
+    This is line seven.
+    Eight and last.
+    *!$ sed -nf s1.sed lines!
+    The second line.
+    Line one.
+    This is line four.
+    The third.
+    This is the sixth sentence.
+    Five.
+    Eight and last.
+    This is line seven.
+    
+END-OF-PAGE
+cat > $workd/ch15_demo_s1.sed << EOF
+h; # copy pattern space (line read) to the hold space
+n; # read the next line into the pattern space
+p; # print the pattern space
+g; # copy the hold space to the pattern space
+p; # print the pattern space
+EOF
+cat > $workd/ch15_demo_lines << EOF
+Line one.
+The second line.
+The third.
+This is line four.
+Five.
+This is the sixth sentence.
+This is line seven.
+Eight and last.
+EOF
+demo 'cat ch15_demo_s1.sed' 'cat ch15_demo_lines' 'sed -nf ch15_demo_s1.sed ch15_demo_lines'
+      ;;
+    *) #-------------------- END --------------------
+      page=16
+      ;;
+  esac
+done

@@ -1,0 +1,250 @@
+# demo.txt
+# DEMO
+# Created by Robert van Engelen
+# Distributed under the GPL
+________________________________________________________________________________
+
+  #!Instructions!
+
+    Create a *!name.txt! file
+
+    Start a new page with a *!___! line (or longer) followed by page content below
+
+    End a page with a *!'''! line (or longer), optionally followed by one of:
+
+      *!demo 'cmd'!                execute cmd in the current shell
+      *!demo bash 'cmd'!           execute cmd in bash
+      *!demo tcsh 'cmd'!           execute cmd in tcsh
+      *!demo 'cmd' 'cmd' ...!      put cmds in current shell history and fork shell
+      *!demo bash 'cmd' 'cmd' ...! put cmds in bash history and then fork bash
+      *!demo tcsh 'cmd' 'cmd' ...! put cmds in tcsh history and then fork tcsh
+      *!nodemo!                    shows message that no demo is available
+
+    Generate and view pages with:  *!$ ./gen-pages < name.txt > name.pages!
+                                   *!$ chmod +x name.pages!
+                                   *!$ ./name.pages!
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# this title will be displayed after this page (press H)
+title="DEMO"
+nodemo
+________________________________________________________________________________
+
+  #!Markup!
+
+    #!header!
+    *!bold!
+    _!underlined!
+    ^!inverted!
+
+    !#!running
+    header text!!
+
+    !*!running
+    bold text!!
+
+    !_!running
+    underlined text!!
+
+    !^!running
+    inverted text!!
+
+    !*!!_!running bold underlined text!!          escape ! ! with space and ^H like ! ^H!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Colors!
+
+    !k!black!!    !^!!k!black!!    !K!black!!    !^!!K!black!!   
+                                                 
+    !r!red!!      !^!!r!red!!      !R!red!!      !^!!R!red!!    
+                                                 
+    !g!green!!    !^!!g!green!!    !G!green!!    !^!!G!green!!  
+                                                 
+    !y!yellow!!   !^!!y!yellow!!   !Y!yellow!!   !^!!Y!yellow!! 
+                                                 
+    !b!blue!!     !^!!b!blue!!     !B!blue!!     !^!!B!blue!!   
+                                                 
+    !m!magenta!!  !^!!m!magenta!!  !M!magenta!!  !^!!M!magenta!!
+                                                 
+    !c!cyan!!     !^!!c!cyan!!     !C!cyan!!     !^!!C!cyan!!   
+                                                 
+    !w!white!!    !^!!w!white!!    !W!white!!    !^!!W!white!!  
+
+
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Bullets!
+
+    • ◦ ● ○ ■ □ ◆ ◇
+
+  #!Arrows and parenthesis!                         ╭───┸───╮
+                            ▲     │ ⎛ ⎡ ⎧ ⎧ ┌ ╭ ╭         ╮ ╮ ┐ ⎫ ⎫ ⎤ ⎞
+    ← ↑ → ↓ ↔ ↕ ↖ ↗ ↘ ↙ ◀︎── │ ──▶︎ │ ⎜ ⎢ ⎪ ⎨ │ │ ┥ ⟨ ‹ › ⟩ ┝ │ │ ⎬ ⎪ ⎥ ⎟
+                            │     ▼ ⎝ ⎣ ⎩ ⎩ └ ╰ ╰         ╯ ╯ ┘ ⎭ ⎭ ⎦ ⎠
+                                                 ╰───┰───╯
+  #!Mathematics and sciences!
+
+    ∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β),
+
+    ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ &lt; a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
+                                                               
+    2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm
+
+  #!APL!
+
+    ((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Box drawings!
+
+  ┌───┬───┬───┐  ^!┌───┬───┬───┐!  !b!!W!┌!b!───!b!┬!b!───!b!┬!b!───!b!┐!!
+  │ ╳ │ ◯ │   │  ^!│ ╳ │ ◯ │   │!  !b!!W!│!m! ╳ !b!│!c! ◯ !b!│!b!   !b!│!!
+  ├───┼───┼───┤  ^!├───┼───┼───┤!  !b!!W!├!b!───!b!┼!b!───!b!┼!b!───!b!┤!!
+  │   │ ╳ │   │  ^!│   │ ╳ │   │!  !b!!W!│!b!   !b!│!m! ╳ !b!│!b!   !b!│!!
+  ├───┼───┼───┤  ^!├───┼───┼───┤!  !b!!W!├!b!───!b!┼!b!───!b!┼!b!───!b!┤!!
+  │ ╳ │   │ ◯ │  ^!│ ╳ │   │ ◯ │!  !b!!W!│!m! ╳ !b!│!b!   !b!│!c! ◯ !b!│!!
+  └───┴───┴───┘  ^!└───┴───┴───┘!  !b!!W!└!b!───!b!┴!b!───!b!┴!b!───!b!┘!!
+
+                                                                      █
+                                                                      ▉
+  ╔══╦══╗  ┌──┬──┐  ╭──┬──╮  ╭──┬──╮  ┏━━┳━━┓  ┎┒┏┑  ╷  ╻ ┏┯┓ ┌┰┐ ╭┰╮ ▊ ╱╲╱╲╳╳╳
+  ║┌─╨─┐║  │╔═╧═╗│  │╒═╪═╕│  │╓─╁─╖│  ┃┌─╂─┐┃  ┗╃╄┙ ╶┼╴╺╋╸┠┼┨ ┝╋┥ ┝╋┥ ▋ ╲╱╲╱╳╳╳
+  ║│╲ ╱│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╿ │┃  ┍╅╆┓  ╵  ╹ ┗┷┛ └┸┘ ╰┸╯ ▌ ╱╲╱╲╳╳╳
+  ╠╡ ╳ ╞╣  ├╢   ╟┤  ├┼─┼─┼┤  ├╫─╂─╫┤  ┣┿╾┼╼┿┫  ┕┛┖┚     ┌┄┄┐ ╎ ┏┅┅┓ ┋ ▍ ╲╱╲╱╳╳╳
+  ║│╱ ╲│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╽ │┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▎
+  ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
+  ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛           └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!bash variables etc!
+
+    *!\$NAME! expands bash variable *!NAME! in the page's text
+
+    *!\$(cmd)! or *!\`cmd\`! executes *!cmd! and shows the output in the page's text
+
+    For example
+
+      *!\$USER! expands into *!$USER!
+
+      *!\$(date "+%A %B %d, %Y")! gives *!$(date "+%A %B %d, %Y")!
+
+    Remember to escape these:
+
+      \\\$ to display a \$, no need to escape when \$ is followed by a space
+
+      \\\` to display a \`
+
+      \\\\ to display a \\
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!bash demo!
+
+    *!$ echo hello!
+
+    Press ^!d! to run this command
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# a single demo bash argument is executed in bash
+demo bash 'echo hello'
+________________________________________________________________________________
+
+  #!bash demo!
+
+    !*!$ for fruit in apples oranges pears bananas
+      do
+        echo \$fruit
+      done!!
+
+    Press ^!d! to run this command
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# a single demo bash argument can span multiple lines
+demo bash 'for fruit in apples oranges pears bananas
+  do
+    echo $fruit
+  done'
+________________________________________________________________________________
+
+  #!tcsh demo!
+
+    *!% echo hello!
+
+    Press ^!d! to run this command
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# a single demo tcsh argument is executed in tcsh
+demo tcsh 'echo hello'
+________________________________________________________________________________
+
+  #!tcsh demo!
+
+    !*!% foreach fruit (apples oranges pears bananas)
+        echo \$fruit
+      end!!
+
+    Press ^!d! to run this command
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# a single demo tcsh argument can span multiple lines
+demo tcsh 'foreach fruit (apples oranges pears bananas)
+    echo $fruit
+  end'
+________________________________________________________________________________
+
+  #!Default shell demo!
+
+    *!echo \$0!
+
+    Press ^!d! to run this command with the default shell $shell
+
+    Or press ^!o! to change the default shell in options
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# a single demo argument is executed in the current shell
+demo 'echo $0'
+________________________________________________________________________________
+
+  #!bash interactive demo!
+
+    *!$ x=1!
+    *!$ echo \$x!
+
+    This stores bash commands in bash history for interactive use
+
+    Press ^!d! to enter the bash shell to try these commands
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# multiple demo arguments are not executed but stored in the history
+demo bash 'x=1' 'echo $x'
+________________________________________________________________________________
+
+  *!Text-only web browser!
+
+    This example uses *!\$(wget -q -O - "URL")! to display online content:
+
+    !m!http://www.cs.fsu.edu/~engelen/courses/COP4342/demowebpage.txt!! says:
+
+${demowebpage:=$(wget -q -O - "http://www.cs.fsu.edu/~engelen/courses/COP4342/demowebpage.txt")}
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# note that this example actually caches the "web page" retrieved
+nodemo

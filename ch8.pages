@@ -1,0 +1,1367 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ "$key" = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch8.txt
+# Chapter 8 - Bash
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 8 - Bash!
+
+
+END-OF-PAGE
+title="Chapter 8 - Bash"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f turtle "The Bourne Again Shell"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Background!
+
+    The Bourne-Again Shell (*!bash!) is based on the Bourne shell (*!sh!)
+      
+      The Bourne shell was developed by Stephen Bourne at AT&T Bell Labs,
+      initially released in 1977 and the default shell of Unix version 7
+
+    Bash was later developed for the GNU project
+    
+    Bash incorporates features from the Bourne shell, csh, and ksh
+
+    Bash is the default shell on most GNU/Linux distributions
+
+    Bash introduced the *!readline!(3) library to improve the command-line
+    experience, added auto-completion, and added a command history mechanism
+
+    Bash and other shells can be used interactively and also to run scripts,
+    which are essentially files containing shell commands and shell programming
+    constructs for "shell scripting"
+
+END-OF-PAGE
+demo 'cowsay -f turtle "Other shells are OK too"'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Other popular shells!
+
+    *!sh! the original Bourne shell, often a symbolic link to *!bash! or *!dash!
+
+    *!dash! the Debian Almquist shell is small, about 100K compared to the 900K
+    of *!bash!, compatible with *!bash!, mainly intended for non-interactive use
+
+    *!ksh! by David Korn is based on *!sh! with many features added, such as
+    aliases which other shells have adopted
+
+    *!csh! originated with Berkeley UNIX in 1978, has shell programming
+    features that look like C
+
+    *!tcsh! an expanded version of *!csh! with many new features such as command
+    and file completion
+    
+    It is recommended to use *!csh! or *!tcsh! as command line shells, but use
+    *!bash! or *!dash! for shell scripts, i.e. to execute shell programs
+
+END-OF-PAGE
+demo 'cowsay -f turtle "csh is like C but totally different"'
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!To change your login shell!
+
+    To change your defaul shell use *!chsh!:
+
+      *!$ chsh!
+      Changing shell for username.
+      Password for username: ........
+
+      Then asks for the new shell or may start the vi editor to edit the shell:
+
+      Shell: /bin/bash
+
+    On Mac OS X you can change the shell with the Terminal program Preferences
+    Profiles, then select Shell Startup Run command
+
+END-OF-PAGE
+demo 'cowsay -f turtle "Actually, chsh uses chpass. There is only one program to change user information."'
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Login shell!
+
+    A "login shell" is the shell program that runs after logging in
+
+      *!bash --login!        # executed by ssh and telnet login
+
+    Subsequent shells that are started can be interactive shells or not, in
+    both cases inherit the environment variables of the shell that started it
+
+    In each of these cases one or more of the following configuration files are
+    read by the *!bash! shell if they exist:
+
+      _!/etc/profile!           read by login shell
+      _!~/.bash_profile!        read by login shell
+      _!~/.bash_login!          read by login shell if _!~/.bash_profile! not found
+      _!~/.profile!             only read when in POSIX compatibility mode *!--posix!
+      _!~/.bashrc!              read by interactive non-login shell
+      _!/etc/bashrc!            only read by the default _!~/.bashrc!
+      _!~/.bash_logout!         read by login shell upon logging out
+      _!/etc/bash.bash_logout!  read by login shell upon logging out
+
+END-OF-PAGE
+demo 'if [ -f ~/.bashrc ]; then read -p "Hit enter to view your ~/.bashrc"; more ~/.bashrc; else echo "you have no ~/.bashrc"; fi'
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!Turning shell features on and off!
+
+    *!set -OPTION! turns *!OPTION! on and *!set +OPTION! turns *!OPTION! off
+
+    *!shopt -s OPTION! also turns *!OPTION! on and *!shopt -u OPTION! turns it off,
+    but supports many more shell options than *!set -OPTION!
+
+    Examples:
+
+      *!set -o noclobber!  # prevents overwriting files by output redirects
+
+      *!set -o extglob!    # extended globbing pattern matching
+
+    You can find a list of shell options at pages 351-353 of the textbook
+
+    For the complete list, see:
+
+    !m!http://www.gnu.org/software/bash/manual/bash.html#The-Shopt-Builtin!!
+
+END-OF-PAGE
+demo 'cowsay -f turtle "It should not be confusing to use two ways to set options, but unfortunately it sometimes is!"'
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Setting the PATH variable!
+
+    As we saw before, the *!PATH! environment variable should be set for
+    interactive and non-interactive *!bash! shells, set it in _!~/.bash_profile!
+
+    For example:
+
+      *!PATH=\$PATH:\$HOME/bin!    # add _!~/bin! to PATH
+
+      With this addition to *!PATH!, you can add your own utilities to _!~/bin!
+      and execute them at the command line from anywhere in the directory tree
+
+    Note that pathnames in path variables such as *!PATH! are separated by colons
+
+END-OF-PAGE
+demo 'echo $PATH'
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Shell variables!
+
+    The general convention is to use lowercase for shell variable names and
+    uppercase for environment variable names
+
+    Assign variables with *!VARIABLE=VALUE! (no blanks before and after the '=')
+
+    A variable's value is dereferenced with *!\$VARIABLE!, if the variable was
+    not assigned than *!bash! assumes it is an empty string "", you can also
+    use variables in "-quoted strings and use \\ to escape \$ with \\\$:
+
+      *!$ name=Joe!
+      *!$ echo \\\$name!
+      Joe
+      *!$ echo \\\$name!
+      \$name
+      *!$ echo "Hello \$name"!
+      Hello Joe
+      *!$ echo 'Hello \$name'!
+      Hello \$name
+
+END-OF-PAGE
+demo 'name=Joe' 'echo "Hello $name"'
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Shell variables continued!
+
+    To remove a variable use *!unset VARIABLE!
+
+    To make a variable constant, use *!readonly VARIABLE!
+
+    To make a variable an environment variable, use *!export VARIABLE! and you
+    can set the value simultaneously with *!export VARIABLE=VALUE!
+
+    You can also use *!declare! to set properties of variables with options:
+    
+      *!-a! declare array
+
+      *!-f! declare function name
+
+      *!-i! declare integer
+
+      *!-r! declare readonly, same as *!readonly VARIABLE!
+
+      *!-x! declare export, same as *!export VARIABLE!
+
+END-OF-PAGE
+demo 'readonly one=1' 'echo $one' 'one=2'
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Array variables!
+
+    Array variables are assigned with *!VARIABLE=(VALUE1 VALUE2 ...)! and by
+    *!VARIABLE[0]=VALUE1; VARIABLE[1]=VALUE2! etc.
+
+    Array variables are dereferenced with *!\${VARIABLE[INDEX]}!
+
+    Use *!\${VARIABLE[@]}! to get a list of all values, or use *!"\${VARIABLE[*]}"!
+    to get the list as one argument, use !*!"\${!VARIABLE[@]}"!! to get the keys
+    and use *!\${#VARIABLE[*]}! to get the array size
+
+    Arrays are deleted with *!unset VARIABLE! and an array item is deleted with
+    *!unset VARIABLE[INDEX]!
+
+    Note: you can use the dereferencing notation *!\${VARIABLE}! also with
+    regular variables, which gives us a way to work around the problem when a
+    dereferenced variable is followed by a string of letters, such as in:
+
+      *!$ name="alpha"; echo "\${name}bet"!
+      alphabet
+
+END-OF-PAGE
+demo 'declare -a names' 'names[0]="-n"' 'names[1]="Joe"' 'names[2]="Mary"' 'echo "${names[@]}"' 'echo "${names[*]}"'
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!Reading array variables!
+
+    *!readarray VARIABLE! reads lines of input into an array variable
+    (available in bash 4):
+
+      !*!$ readarray hosts < /etc/hosts!!    # read /etc/hosts into an array
+      !*!$ for line in "\${hosts[@]}"; do!!   # for each line in /etc/hosts
+      !*!>   if [[ ! \$line = \\#.* ]]; then!! # show non-comment entries (# comment)
+      !*!>     echo \$line!!
+      !*!>   fi!!
+      !*!> done!!
+
+    Without *!readarray! and arrays we can pipe the file to a loop over *!read!:
+
+      !*!$ cat /etc/hosts |!!
+      !*!> while read line; do!!
+      !*!>   if [[ ! \$line = \\#.* ]]; then!! # show non-comment entries (# comment)
+      !*!>     echo \$line!!
+      !*!>   fi!!
+      !*!> done!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!Shell Parameter Expansion!
+
+    You can slice the string content of a variable with *!\${VARIABLE:START:LENGTH}!
+    which gives the *!VARIABLE!'s text starting at *!START! and length *!LENGTH!:
+
+      *!$ name="Joe"!
+      *!$ echo "\${name}y!"
+      Joey
+      *!$ echo "\${name:0:2}y!"
+      Joy
+      *!$ echo "D\${name:1}!"
+      Doe
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!Shell Parameter Expansion continued!
+
+    To get the first part of the string content stripping the last part that
+    matches a glob, use *!\${VARIABLE%GLOB}! and use *!\${VARIABLE#GLOB}! to
+    get the first part without the last part that matches the *!GLOB!, there are
+    also long variants *!%%! and *!##! of these:
+
+      *!$ filename="example.tar.gz"!
+      *!$ echo "\${filename%.*}"!
+      example.tar
+      *!$ echo "\${filename%%.*}"!
+      example
+      *!$ echo "\${filename#*.}"!
+      tar.gz
+      *!$ echo "\${filename##*.}"!
+      gz
+
+    The full documentation of shell parameter expansion:
+
+!m!http://www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Environment variables!
+
+    Environment variables (exported variables) are inherited by sub-shells and
+    can therefore be set by sub-shells (sub-shells can also export variables)
+
+      This is roughly like local versus global variables in C
+
+    Bash uses *!export VARIABLE! and *!export VARIABLE=VALUE!
+
+    Tcsh uses *!setenv VARIABLE VALUE!
+
+    To display the values of all environment variables execute *!env!
+
+    To display all variables, environment and non-environment, execute *!set!
+
+END-OF-PAGE
+demo 'env' 'set'
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!Common environment variables!
+
+    *!HOME! your home directory path, same as _!~! in path names
+
+    *!PATH! shell path to look for programs, each pathname is separated by a ':'
+
+    *!MAIL! contains the pathname to your mailbox (we'll skip the details here)
+
+    *!PS1! the user prompt, e.g. *!PS1="\$ "! displays the '$'
+
+    *!PS2! the secondary user prompt, used with continued shell input
+
+    *!PS3! the menu prompt of the *!select! control structure
+
+    *!PS4! the debugging prompt of bash
+
+    *!IFS! separates input fields for word splitting of command arguments
+
+    *!CDPATH! alternative paths for *!cd!, each pathname is separated by a ':'
+
+END-OF-PAGE
+demo 'PS1="\u@\h:\w [\!]$ "' 'wget -q -O - http://www.cs.fsu.edu/~engelen/courses/COP4342/PS1.txt'
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!Locale!
+
+    Localization is the process of adapting software to meet the language and
+    other requirements of a specific locale
+
+    *!locale! displays locale settings:
+
+      *!$ locale!
+      LANG="en_US.UTF-8"
+      LC_COLLATE="en_US.UTF-8"
+      LC_CTYPE="en_US.UTF-8"
+      LC_MESSAGES="en_US.UTF-8"
+      LC_MONETARY="en_US.UTF-8"
+      LC_NUMERIC="en_US.UTF-8"
+      LC_TIME="en_US.UTF-8"
+      LC_ALL=
+
+    These environment variables can be assigned to a specific locale
+    
+    *!export LANG=C! sets the C locale: bash *!printf! works as usual
+
+END-OF-PAGE
+demo 'locale' 'export LANG="de_DE.UTF-8"' 'printf "amount=%f" 1,23'
+      ;;
+    17) #-------------------- PAGE 17 --------------------
+      show << END-OF-PAGE
+
+  #!Reading values of variables!
+
+    The *!read! command reads a line of standard input text, splits the line
+    into fields of one or more strings and assigns these strings to variables
+
+      *!read VARIABLE1 VARIABLE2 ...!
+
+    For example:
+
+      *!$ read firstname lastname!
+      John Doe
+      *!$ echo "Your first name is \$firstname and last name \$lastname"!
+      Your first name is John and last name Doe
+
+    Standard input redirects work too, but only one line is read:
+
+      *!$ read text < input.txt!
+
+    The last variable contains all fields if more fields than variables are
+    entered
+
+END-OF-PAGE
+demo 'read firstname lastname' 'echo "Your first name is $firstname and last name $lastname"'
+      ;;
+    18) #-------------------- PAGE 18 --------------------
+      show << END-OF-PAGE
+
+  #!Running a bash script!
+
+    Shell script files usually use extension _!.sh!
+
+    A shell script file should be made executable with *!chmod +x myscript.sh!
+
+    A shell script file may start with a "hashbang" (a.k.a. "shebang"):
+
+      !*!# !/bin/bash!!
+
+      This !*!# ! !!shebang specifies that _!/bin/bash! interprets the file
+
+    Another way to run a script is to execute *!sh! on the command line:
+
+      *!$ sh myscript.sh!
+
+      Here, _!myscript.sh! does not need to have executable attributes,
+      *!sh! is usually a symbolic link to *!bash!
+
+END-OF-PAGE
+nodemo
+      ;;
+    19) #-------------------- PAGE 19 --------------------
+      show << END-OF-PAGE
+
+  #!The directory stack!
+
+    The shell has a built-in directory stack to simplify navigation into and
+    back out of subdirectories, recursively
+
+    *!pushd PATHNAME! changes directory to *!PATHNAME! while pushing the
+    current directory path on the stack
+
+    *!popd! pops the directory path off the stack and changes to it
+
+    *!dirs! shows the directory stack
+
+    May come in handy to temporarily change directory and back, for example:
+
+      # !/bin/bash
+      pushd ~/projects/foo
+      make   # build all in ~/projects/foo
+      popd   # we're back in the directory where we started
+
+END-OF-PAGE
+demo 'pushd ..' 'pwd' 'popd' 'pwd'
+      ;;
+    20) #-------------------- PAGE 20 --------------------
+      show << END-OF-PAGE
+
+  #!Shell arguments!
+
+    You can pass arguments to a shell script in the same way you pass arguments
+    to a program
+
+    These arguments are stored in *!\$1!, *!\$2!, ... *!\$9!, much in the same way you
+    use *!argv[1...9]! in C programs, and are called "positional parameters"
+
+    The *!\$0! contains the name of the script (viz. *!argv[0]!)
+
+    For example, the following script takes a file name to make it executable:
+
+      # !/bin/bash
+      echo "Making file \$1 executable"
+      chmod +x "\$1"
+
+    Access arguments beyond *!\$9! with *!\${10}!, *!\${11}!, ...
+
+END-OF-PAGE
+nodemo
+      ;;
+    21) #-------------------- PAGE 21 --------------------
+      show << END-OF-PAGE
+
+  #!Working with shell arguments!
+
+    The number of arguments passed to a script is *!\$#!, which you can check
+    to verify that sufficient arguments were provided:
+
+      # !/bin/bash
+      if [ \$# -lt 1 ]; then
+        echo "Usage: \$0 FILE"
+      else
+        echo "Making file \$1 executable"
+        chmod +x "\$1"
+      fi
+
+    We will discuss the *!if! structure and condition testing shortly...
+
+END-OF-PAGE
+nodemo
+      ;;
+    22) #-------------------- PAGE 22 --------------------
+      show << END-OF-PAGE
+
+  #!Working with shell arguments continued!
+
+    The string of all arguments is stored in *!\$@!, which come in handy to
+    pass all arguments to the script to another command in the script:
+    
+      *!$ cat argecho1.sh!
+      # !/bin/bash
+      echo "\$@"      # echo \$1 \$2 ...
+      *!$ ./argecho1.sh -n hello bob!
+      hello bob
+
+    Also *!\$* !can be used, but its string value is a single argument:
+
+      *!$ cat argecho2.sh!
+      # !/bin/bash
+      echo "\$*"      # echo "\$1 \$2 ..."
+      *!$ ./argecho2.sh -n hello bob!
+      -n hello bob
+
+END-OF-PAGE
+nodemo
+      ;;
+    23) #-------------------- PAGE 23 --------------------
+      show << END-OF-PAGE
+
+  #!Shifting shell arguments!
+
+    Use *!shift NUM! to shift arguments from *!\$NUM+1!... to *!\$1!... where
+    *!NUM! is optional and assumed to be 1 when omitted
+
+    *!shift NUM! also decreases !*!\$# !!by *!NUM!
+
+      # !/bin/bash
+      if [ \$# -lt 1 ]; then
+        echo "Usage: \$0 FILE"; exit 1
+      fi
+      nflag=0
+      if [ \$1 == "-n" ]; then
+        nflag=1
+        shift
+      fi
+      ... use arguments \$1, \$2 etc ...
+
+END-OF-PAGE
+nodemo
+      ;;
+    24) #-------------------- PAGE 24 --------------------
+      show << END-OF-PAGE
+
+  #!Setting shell arguments to new values continued!
+
+    The current shell arguments are (re)set with *!set ARG1 ARG2 ...! where
+    the arguments should not be formatted as *!set! options such as *!-o!
+
+    To set arguments that clash with options use *!--!, for example:
+
+      *!$ set -- -o myfile.txt!
+      *!$ echo \$1!
+      -o
+      *!$ echo \$2!
+      myfile.txt
+
+    An example to set shell arguments with an array:
+
+      *!$ ARGS=(a b c)!
+      *!$ set -- "\${ARGS[@]}"!
+      *!$ echo \$1 \$2 \$3!
+      a b c
+
+END-OF-PAGE
+nodemo
+      ;;
+    25) #-------------------- PAGE 25 --------------------
+      show << END-OF-PAGE
+
+  #!Setting shell arguments to new values!
+
+    An example to set shell arguments with the results of command substitution:
+
+      *!$ cat myfile.txt!
+      This is a test
+      to count lines and words.
+      *!$ set \$(wc myfile.txt)!
+      *!$ echo "Found \$2 words in \$1 lines"!
+      Found 9 words in 2 lines
+
+      where *!wc! returns the line, word and character count of a file
+
+END-OF-PAGE
+nodemo
+      ;;
+    26) #-------------------- PAGE 26 --------------------
+      show << END-OF-PAGE
+
+  #!Passing arguments from input to a command with xargs!
+
+    *!xargs COMMAND! reads a group of arguments from standard input and runs
+    the specified command with that group of arguments
+
+    The following example compiles _!example.c! with *!gcc -c example.c! via
+    keyboard input:
+
+      *!$ xargs gcc -c!
+      example.c
+      ^!^D!
+
+    Another example:
+
+      *!$ ls -1 | egrep 'e+\\.c\$' > c_files.txt!  # .c files matching the regex
+      *!$ xargs gcc -c < c_files.txt!
+
+      where *!ls -1! shows one file per line and *!egrep! filters file names
+      matching the regex *!e+\\.c\$!
+
+END-OF-PAGE
+nodemo
+      ;;
+    27) #-------------------- PAGE 27 --------------------
+      show << END-OF-PAGE
+
+  #!Functions!
+
+    A shell function has the following general form, where the keyword
+    *!function! is optional
+!*!
+      function FUNCTIONNAME() {
+        ... one or more commands ...
+      }
+!!
+    Arguments to the function are available as *!\$1!, *!\$2!, ...
+    
+    The number of arguments is *!\$#!
+
+    Local variables are declared with *!local VARIABLE! and *!local VARIABLE=VALUE!,
+    which can be placed anywhere in the body of a function
+
+    Use *!break! to prematurely exit from a function
+
+    Use *!return EXIT! to return with an exit status
+
+END-OF-PAGE
+nodemo
+      ;;
+    28) #-------------------- PAGE 28 --------------------
+      show << END-OF-PAGE
+
+  #!Function examples!
+
+    alert() {
+      echo -n "Warning: \$1, press ENTER to continue "
+      read
+    }
+
+    countfiles() {
+      ls -l \$1 | wc -l
+    }
+
+    file_exists() {
+      local filename=\$1
+      if [ -f \$filename ]; then
+        return 0
+      else
+        return 1
+      fi
+    }
+
+END-OF-PAGE
+demo 'alert() { echo -n "Warning: $1, press ENTER to continue "; read; }' 'alert "missile test"'
+      ;;
+    29) #-------------------- PAGE 29 --------------------
+      show << END-OF-PAGE
+
+  #!Debugging a shell script!
+
+    Scripts are interpreted by the shell
+
+      Syntax errors are not detected until the line with an error is interpreted
+
+      There is no debugger for the shell, only tracing of commands
+
+    Use shell option *!-v! to enable verbose mode, which prints the commands as
+    they are read by the shell
+
+    The *!-v! option can be set in the script itself with *!set -v! to turn on
+    verbose mode and *!set +v! to turn off verbose mode
+
+    Use *!set -x! to turn on shell tracing, *!set +x! to turn tracing off
+
+END-OF-PAGE
+nodemo
+      ;;
+    30) #-------------------- PAGE 30 --------------------
+      show << END-OF-PAGE
+
+  #!Reading a script in the current shell!
+
+    Use *!.! (dot) or *!source! to read a shell script without starting a new
+    shell, for example:
+
+      *!$ source myconfig!
+
+    The current shell reads _!myconfig!, which is quicker than starting a new
+    shell and all variables and settings set in _!myconfig! are made to the
+    current shell
+
+    Beware: when an *!exit! command is read the current shell will exit!
+
+END-OF-PAGE
+nodemo
+      ;;
+    31) #-------------------- PAGE 31 --------------------
+      show << END-OF-PAGE
+
+  #!Testing conditions!
+
+    Bash supports several forms to test conditions:
+
+      *![ CONDITION ]! or *!test CONDITION! which returns success with exit
+      code 0 if *!CONDITION! was true, exits with code 1 otherwise
+
+      *![[ CONDITION ]]! same as *![ CONDITION ]! but adds string comparisons
+      and supports '<' and '>' comparisons
+
+    Use *!-eq!, *!-ne!, *!-lt!, *!-le!, *!-gt!, *!-ge! with *![ CONDITION ]! and
+    use *!==!,!*! !=!!, *!<!, *!<=!, *!>!, *!>=! with *![[ CONDITION ]]!, for example:
+
+      *!$ [ 1 -lt 2 ]!      # is 1 < 2 ?
+      *!$ echo \$?!          # yes, exit code is 0
+      0
+
+      *!$ [[ "b" < "a" ]]!  # is "b" < "a" ?
+      *!$ echo \$?!          # no, exit code is 1
+      1
+
+END-OF-PAGE
+demo '[ 1 -lt 2 ]' 'echo $?' '[[ "b" < "a" ]]' 'echo $?'
+      ;;
+    32) #-------------------- PAGE 32 --------------------
+      show << END-OF-PAGE
+
+  #!Testing conditions continued!
+
+    *![ CONDITION ]! and *!test! use operators *!-gt!, *!-ge!, *!-lt!, *!-le!, *!-eq!, and *!-ne!
+    that work only with integers
+    
+    *![[ CONDITION ]]! uses operators *!>!, *!>=!, *!<!, *!<=!, *!==!, and !*!!=!!
+    that work with integers and with strings
+
+    You can also pattern match strings with *!=!, for example
+
+      *![[ \$phone = i* ]]!  # \$phone starts with an i (there is no globbing of *)
+
+    Confusingly, *!=! and *!==! are used for string equality in *![ CONDITION ]!
+
+    A!*! ! !!negates a condition:
+
+      !*![[ ! \$phone = i* ]]!!  # \$phone does not start with an i
+
+    There is also a quick check to see if a string is empty with *![ -z \$name ]!
+    or not empty with *![ -n \$name ]!
+
+END-OF-PAGE
+demo '[[ "iphone" = i* ]]' 'echo $?'
+      ;;
+    33) #-------------------- PAGE 33 --------------------
+      show << END-OF-PAGE
+
+  #!Testing conditions continued!
+
+    There are other tests for file attributes:
+
+      *![ -e FILE ]!  # FILE exists?
+
+      *![ -r FILE ]!  # is FILE readable?
+
+      *![ -w FILE ]!  # is FILE writable?
+
+      *![ -x FILE ]!  # is FILE executable?
+
+      *![ -f FILE ]!  # does FILE exist and is not a directory?
+
+      *![ -d FILE ]!  # is FILE a directory?
+
+    And again negation can be used:
+
+      !*![ ! -x FILE ]!!  # is FILE not executable?
+
+END-OF-PAGE
+demo '[ -x /bin/bash ]' 'echo $?'
+      ;;
+    34) #-------------------- PAGE 34 --------------------
+      show << END-OF-PAGE
+
+  #!Using && and ||!
+
+    *!COMMAND1 && COMMAND2! executes *!COMMAND2! after *!COMMAND1! exits normally
+    with a zero exit code
+
+    *!COMMAND1 || COMMAND2! executes *!COMMAND2! after *!COMMAND1! terminated
+    abnormally with a nonzero exit code
+
+    These operators can be used with testing conditions too, for example:
+
+      *![ -r FILE ] && [ -w FILE ]!  # is FILE readable and writable?
+
+    *![[ CONDITION ]]! also supports these operators inside the brackets:
+
+      *![[ -r FILE && -w FILE ]]!  # is FILE readable and writable?
+
+    You can also use *!-o! (or) and *!-a! (and) with *!test! and *![ CONDITION ]!:
+
+      *![ -r FILE -a -w FILE ]!  # is FILE readable and writable?
+
+      *![ -r FILE -o -w FILE ]!  # is FILE readable or writable?
+
+END-OF-PAGE
+demo '[ -x /bin/bash ] && echo "/bin/bash is executable"'
+      ;;
+    35) #-------------------- PAGE 35 --------------------
+      show << END-OF-PAGE
+
+  #!Grouping commands!
+
+    Commands can be grouped with *!(...)!
+
+    This permits you to group commands for background execution, for example:
+
+      *!$ (make bigproject && make otherbigproject) 2>&1 > out.txt &!
+
+    which is different from the incorrect attempt to do the same:
+
+      *!$ make bigproject & make otherbigproject 2>&1 > out.txt &!
+
+END-OF-PAGE
+nodemo
+      ;;
+    36) #-------------------- PAGE 36 --------------------
+      show << END-OF-PAGE
+
+  #!The if statement!
+
+    The general form of an *!if! statment with optional *!else! and *!elif! is:
+!*!
+      if COMMAND
+      then
+        ... one or more commands ...
+      elif COMMAND
+      then
+        ... one or more commands ...
+      else
+        ... one or more commands ...
+      fi
+!!
+    Because *!;! is a separator, just like newline, we can use shorter forms:
+
+      *!if COMMAND; then!                  *!elif COMMAND; then!
+
+    Note that *!if! checks the exit status of a command (exit 0 is success), so
+    use *!test CONDITION! or its shorthand *![ CONDITION ]! to test conditions
+
+END-OF-PAGE
+nodemo
+      ;;
+    37) #-------------------- PAGE 37 --------------------
+      show << END-OF-PAGE
+
+  #!An if statement example!
+
+    Consider the following script "isfile.sh":
+
+    *!$ cat isfile.sh!
+    # !/bin/bash
+    if [ \$# -lt 1 ]; then
+      echo "Usage: \$0 FILE"
+    elif [ -f \$1 ]; then
+      if [ -x \$1 ]; then
+        echo "\$1 is an executable"
+      else
+        echo "\$1 is an file"
+      fi
+    elif [ -d \$1 ]; then
+      echo "\$1 is a directory"
+    fi
+
+    *!$ chmod +x isfile.sh!
+    *!$ ./isfile.sh isfile.sh!
+    isfile.sh is an executable
+
+END-OF-PAGE
+cat > $workd/isfile.sh << END
+#!/bin/bash
+if [ \$# -lt 1 ]; then
+  echo "Usage: \$0 FILE"
+elif [ -f \$1 ]; then
+  if [ -x \$1 ]; then
+    echo "\$1 is an executable"
+  else
+    echo "\$1 is an file"
+  fi
+elif [ -d \$1 ]; then
+  echo "\$1 is a directory"
+fi
+END
+chmod +x $workd/isfile.sh
+demo 'cat isfile.sh' './isfile.sh isfile.sh' './isfile.sh ../ch8.pages'
+      ;;
+    38) #-------------------- PAGE 38 --------------------
+      show << END-OF-PAGE
+
+  #!Arithmetic!
+
+    The *!\$(( EXPRESSION ))! form evaluates *!EXPRESSION! and returns the result
+
+    Variables in *!EXPRESSION! do not need to be dereferenced with *!\$!
+
+    For example:
+
+      *!$ x=3!
+      *!$ y=4!
+      *!$ z=\$((x*x+y*y))!
+      *!$ echo "The result is \$z"!
+      The result is 25
+
+    You can use the *!let! built-in as a shorthand, for example *!let z=x*x+y*y!
+
+    You can use *!\$(( EXPRESSION ))! within "..." strings, just like variables
+
+      *!$ echo "The result is \$((x*x+y*y))"!
+
+END-OF-PAGE
+nodemo
+      ;;
+    39) #-------------------- PAGE 39 --------------------
+      show << END-OF-PAGE
+
+  #!Arithmetic continued!
+
+    The *!(( EXPRESSION ))! form evaluates *!EXPRESSION! and exits with the result
+
+      Does NOT return the value of the result as *!\$(( EXPRESSION ))! does
+
+    This can be used to as an alternative to *![ CONDITION ]! for tests, and
+    you can use more expressive conditions, for example:
+
+      if (( x*x > y )); then
+        echo "x^2 > y with x=\$x and y=\$y"
+      fi
+
+END-OF-PAGE
+nodemo
+      ;;
+    40) #-------------------- PAGE 40 --------------------
+      show << END-OF-PAGE
+
+  #!Command substitution!
+
+    There are two equivalent forms for command substitution, the old form
+    *!\`COMMAND\`! with backticks and the new form *!\$(COMMAND)!
+    
+      The new form is preferred
+
+    The standard output of *!COMMAND! will be substituted, standard error is
+    not affected
+
+    You can use *!\$(COMMAND)! within "..." strings too
+
+    Examples:
+
+      *!$ echo "The current directory is \$(pwd)"!
+
+      *!$ ls -l \$(find . -name README -print)!
+
+      *!$ today=\$(date '+%Y-%m-%d')!
+
+END-OF-PAGE
+demo 'echo "The current directory is $(pwd)"'
+      ;;
+    41) #-------------------- PAGE 41 --------------------
+      show << END-OF-PAGE
+
+  #!Bash command line processes steps!
+
+    1. brace expansion: replaces *!name{one,two,...}! with *!nameone nametwo ...!
+       replaces *!{1..3}! with *!1 2 3! and replaces *!{1..6..2}! with *!1 2 4 6!
+
+    2. tilde expansion: replaces _!~! and replaces _!~name! with home pathnames
+
+    3. parameter and variable expansion: replaces *!\$1! etc. with string values
+
+    4. arithmetic expansion: calculates value of *!\$((...))!
+
+    5. command substitution expansion: executes command to substitute *!\$(...)!
+
+    6. word splitting: split command arguments at spaces and tabs (as per *!IFS!)
+
+    7. pathname expansion: expand globs (*!* ?! and *![...]!) with pathnames
+
+    8. process substitution: create named pipes for *!<(...)! and *!>(...)!
+
+    9. quote removal: remove quotes from *!"..."! and *!'...'!
+
+END-OF-PAGE
+nodemo
+      ;;
+    42) #-------------------- PAGE 42 --------------------
+      show << END-OF-PAGE
+
+  #!Some other useful utilities!
+
+    *!touch FILE! creates a new empty _!FILE! or updates its modification time
+
+    *!eval EXPRESSION! evaluates *!EXPRESSION! and executes it as a command
+
+      *!$ CMD=ls; ARG='*.c'!
+      *!$ eval \$CMD \$ARG!
+
+    *!exec COMMAND! executes *!COMMAND! in place of the current shell
+
+    *!bc! arbitrary-precision basic calculator language, *!-l! enables the math lib
+
+      *!$ pi=\$(echo 'scale=50; 4*a(1)' | bc -l)!
+      *!$ echo \$pi!
+      3.14159265358979323846264338327950288419716939937508
+
+    *!basename PATH! prints the name of the base name without the path part
+
+    *!dirname PATH! prints the path part without the base name
+
+END-OF-PAGE
+demo 'command=ls' 'pathname=~/bundle.tar.gz' 'dir=$(dirname $pathname)' 'echo $dir' 'eval "$command $dir"'
+      ;;
+    *) #-------------------- END --------------------
+      page=42
+      ;;
+  esac
+done

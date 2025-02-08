@@ -1,0 +1,582 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# demo.txt
+# DEMO
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+  #!Instructions!
+
+    Create a *!name.txt! file
+
+    Start a new page with a *!___! line (or longer) followed by page content below
+
+    End a page with a *!'''! line (or longer), optionally followed by one of:
+
+      *!demo 'cmd'!                execute cmd in the current shell
+      *!demo bash 'cmd'!           execute cmd in bash
+      *!demo tcsh 'cmd'!           execute cmd in tcsh
+      *!demo 'cmd' 'cmd' ...!      put cmds in current shell history and fork shell
+      *!demo bash 'cmd' 'cmd' ...! put cmds in bash history and then fork bash
+      *!demo tcsh 'cmd' 'cmd' ...! put cmds in tcsh history and then fork tcsh
+      *!nodemo!                    shows message that no demo is available
+
+    Generate and view pages with:  *!$ ./gen-pages < name.txt > name.pages!
+                                   *!$ chmod +x name.pages!
+                                   *!$ ./name.pages!
+
+
+END-OF-PAGE
+# this title will be displayed after this page (press H)
+title="DEMO"
+nodemo
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Markup!
+
+    #!header!
+    *!bold!
+    _!underlined!
+    ^!inverted!
+
+    !#!running
+    header text!!
+
+    !*!running
+    bold text!!
+
+    !_!running
+    underlined text!!
+
+    !^!running
+    inverted text!!
+
+    !*!!_!running bold underlined text!!          escape ! ! with space and ^H like ! ^H!
+
+END-OF-PAGE
+nodemo
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Colors!
+
+    !k!black!!    !^!!k!black!!    !K!black!!    !^!!K!black!!   
+                                                 
+    !r!red!!      !^!!r!red!!      !R!red!!      !^!!R!red!!    
+                                                 
+    !g!green!!    !^!!g!green!!    !G!green!!    !^!!G!green!!  
+                                                 
+    !y!yellow!!   !^!!y!yellow!!   !Y!yellow!!   !^!!Y!yellow!! 
+                                                 
+    !b!blue!!     !^!!b!blue!!     !B!blue!!     !^!!B!blue!!   
+                                                 
+    !m!magenta!!  !^!!m!magenta!!  !M!magenta!!  !^!!M!magenta!!
+                                                 
+    !c!cyan!!     !^!!c!cyan!!     !C!cyan!!     !^!!C!cyan!!   
+                                                 
+    !w!white!!    !^!!w!white!!    !W!white!!    !^!!W!white!!  
+
+
+
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!Bullets!
+
+    • ◦ ● ○ ■ □ ◆ ◇
+
+  #!Arrows and parenthesis!                         ╭───┸───╮
+                            ▲     │ ⎛ ⎡ ⎧ ⎧ ┌ ╭ ╭         ╮ ╮ ┐ ⎫ ⎫ ⎤ ⎞
+    ← ↑ → ↓ ↔ ↕ ↖ ↗ ↘ ↙ ◀︎── │ ──▶︎ │ ⎜ ⎢ ⎪ ⎨ │ │ ┥ ⟨ ‹ › ⟩ ┝ │ │ ⎬ ⎪ ⎥ ⎟
+                            │     ▼ ⎝ ⎣ ⎩ ⎩ └ ╰ ╰         ╯ ╯ ┘ ⎭ ⎭ ⎦ ⎠
+                                                 ╰───┰───╯
+  #!Mathematics and sciences!
+
+    ∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β),
+
+    ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ &lt; a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),
+                                                               
+    2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm
+
+  #!APL!
+
+    ((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Box drawings!
+
+  ┌───┬───┬───┐  ^!┌───┬───┬───┐!  !b!!W!┌!b!───!b!┬!b!───!b!┬!b!───!b!┐!!
+  │ ╳ │ ◯ │   │  ^!│ ╳ │ ◯ │   │!  !b!!W!│!m! ╳ !b!│!c! ◯ !b!│!b!   !b!│!!
+  ├───┼───┼───┤  ^!├───┼───┼───┤!  !b!!W!├!b!───!b!┼!b!───!b!┼!b!───!b!┤!!
+  │   │ ╳ │   │  ^!│   │ ╳ │   │!  !b!!W!│!b!   !b!│!m! ╳ !b!│!b!   !b!│!!
+  ├───┼───┼───┤  ^!├───┼───┼───┤!  !b!!W!├!b!───!b!┼!b!───!b!┼!b!───!b!┤!!
+  │ ╳ │   │ ◯ │  ^!│ ╳ │   │ ◯ │!  !b!!W!│!m! ╳ !b!│!b!   !b!│!c! ◯ !b!│!!
+  └───┴───┴───┘  ^!└───┴───┴───┘!  !b!!W!└!b!───!b!┴!b!───!b!┴!b!───!b!┘!!
+
+                                                                      █
+                                                                      ▉
+  ╔══╦══╗  ┌──┬──┐  ╭──┬──╮  ╭──┬──╮  ┏━━┳━━┓  ┎┒┏┑  ╷  ╻ ┏┯┓ ┌┰┐ ╭┰╮ ▊ ╱╲╱╲╳╳╳
+  ║┌─╨─┐║  │╔═╧═╗│  │╒═╪═╕│  │╓─╁─╖│  ┃┌─╂─┐┃  ┗╃╄┙ ╶┼╴╺╋╸┠┼┨ ┝╋┥ ┝╋┥ ▋ ╲╱╲╱╳╳╳
+  ║│╲ ╱│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╿ │┃  ┍╅╆┓  ╵  ╹ ┗┷┛ └┸┘ ╰┸╯ ▌ ╱╲╱╲╳╳╳
+  ╠╡ ╳ ╞╣  ├╢   ╟┤  ├┼─┼─┼┤  ├╫─╂─╫┤  ┣┿╾┼╼┿┫  ┕┛┖┚     ┌┄┄┐ ╎ ┏┅┅┓ ┋ ▍ ╲╱╲╱╳╳╳
+  ║│╱ ╲│║  │║   ║│  ││ │ ││  │║ ┃ ║│  ┃│ ╽ │┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▎
+  ║└─╥─┘║  │╚═╤═╝│  │╘═╪═╛│  │╙─╀─╜│  ┃└─╂─┘┃  ░░▒▒▓▓██ ┊  ┆ ╎ ╏  ┇ ┋ ▏
+  ╚══╩══╝  └──┴──┘  ╰──┴──╯  ╰──┴──╯  ┗━━┻━━┛           └╌╌┘ ╎ ┗╍╍┛ ┋  ▁▂▃▄▅▆▇█
+
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!bash variables etc!
+
+    *!\$NAME! expands bash variable *!NAME! in the page's text
+
+    *!\$(cmd)! or *!\`cmd\`! executes *!cmd! and shows the output in the page's text
+
+    For example
+
+      *!\$USER! expands into *!$USER!
+
+      *!\$(date "+%A %B %d, %Y")! gives *!$(date "+%A %B %d, %Y")!
+
+    Remember to escape these:
+
+      \\\$ to display a \$, no need to escape when \$ is followed by a space
+
+      \\\` to display a \`
+
+      \\\\ to display a \\
+
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!bash demo!
+
+    *!$ echo hello!
+
+    Press ^!d! to run this command
+
+END-OF-PAGE
+# a single demo bash argument is executed in bash
+demo bash 'echo hello'
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!bash demo!
+
+    !*!$ for fruit in apples oranges pears bananas
+      do
+        echo \$fruit
+      done!!
+
+    Press ^!d! to run this command
+
+END-OF-PAGE
+# a single demo bash argument can span multiple lines
+demo bash 'for fruit in apples oranges pears bananas
+  do
+    echo $fruit
+  done'
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!tcsh demo!
+
+    *!% echo hello!
+
+    Press ^!d! to run this command
+
+END-OF-PAGE
+# a single demo tcsh argument is executed in tcsh
+demo tcsh 'echo hello'
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!tcsh demo!
+
+    !*!% foreach fruit (apples oranges pears bananas)
+        echo \$fruit
+      end!!
+
+    Press ^!d! to run this command
+
+END-OF-PAGE
+# a single demo tcsh argument can span multiple lines
+demo tcsh 'foreach fruit (apples oranges pears bananas)
+    echo $fruit
+  end'
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!Default shell demo!
+
+    *!echo \$0!
+
+    Press ^!d! to run this command with the default shell $shell
+
+    Or press ^!o! to change the default shell in options
+
+END-OF-PAGE
+# a single demo argument is executed in the current shell
+demo 'echo $0'
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!bash interactive demo!
+
+    *!$ x=1!
+    *!$ echo \$x!
+
+    This stores bash commands in bash history for interactive use
+
+    Press ^!d! to enter the bash shell to try these commands
+
+END-OF-PAGE
+# multiple demo arguments are not executed but stored in the history
+demo bash 'x=1' 'echo $x'
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  *!Text-only web browser!
+
+    This example uses *!\$(wget -q -O - "URL")! to display online content:
+
+    !m!http://www.cs.fsu.edu/~engelen/courses/COP4342/demowebpage.txt!! says:
+
+${demowebpage:=$(wget -q -O - "http://www.cs.fsu.edu/~engelen/courses/COP4342/demowebpage.txt")}
+
+END-OF-PAGE
+# note that this example actually caches the "web page" retrieved
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=13
+      ;;
+  esac
+done

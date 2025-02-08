@@ -1,0 +1,765 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch5.txt
+# Chapter 5 - The Shell
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 5 - The Shell!
+
+
+END-OF-PAGE
+title="Chapter 5 - The Shell"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f turtle "What shell? My shell?"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!Overview!
+
+    • Command syntax and command execution by the shell
+
+    • More about I/O redirects and pipes
+
+    • More about globbing
+
+END-OF-PAGE
+demo 'cowsay -f surgery "A bit more drilling down into shells"'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: commands with arguments!
+
+    The typical "command line" syntax of a shell:
+
+      *!COMMAND ARG1 ARG2 ...!
+
+    Each *!ARG! is a command argument, which is either a "token" separated by
+    white space or a quoted argument
+
+      *!$ ls -l common.cpp main.cpp!
+      *!$ ls '-l' 'common.cpp' 'main.cpp'!    # same, but with quoted arguments
+      *!$ ls '-l common.cpp main.cpp'!        # not the same: only one argument
+
+      *!$ ls *.cpp!      # multiple arguments through globbing
+      *!$ ls '*.cpp'!    # not the same: quoted argument matches file _!*.cpp!
+
+    Some utilities have their own "commands", for example *!openssl!
+
+      *!$ openssl dgst -sha256 backup.zip!
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: command options!
+
+    The first command arguments of a command are typically options, for example:
+
+      *!-h! a simple single-letter option
+
+      *!-b NUM! a simple option with a value
+
+      *!-lat! combines three options *!-l -a -t!
+
+      *!--help! a long option
+
+      *!--buffers=NUM! a long option with a value
+
+      *!--! ends the options, prevents arguments like *!-f! to be considered an
+      option with *!-- -f!, for example *!rm -- -f! and *!grep -- '-q' *.txt!
+      
+      For pathnames starting with a dash you can also use *!./-f! instead of
+      *!-- -f!, for example *!rm ./-f!
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: command line continuation!
+
+    *!COMMAND ARG1 ARG2 ... \\ ...!
+
+    You can continue a command on the next line by placing a backslash at the
+    end of the line:
+
+      *!ls \\!
+      *!> common.cpp \\!
+      *!> main.cpp!
+      common.cpp	main.cpp
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: I/O redirects and pipes!
+
+    *!COMMAND ARG1 ARG2 ... < FILEIN > FILEOUT 2> FILEERR! redirect stdin from
+    _!FILEIN!, stdout to _!FILEOUT! and stderr to _!FILEERR!
+
+      *!>> FILEOUT! and *!2>> FILEERR! redirects stdout/stderr and appends to a file
+
+      Use *!>& FILE! to redirect stdout and stderr together, merged
+
+      Use *!2>&1! to make stderr a duplicate of stdout, e.g. *!ls > FILE 2>&1!
+
+    *!COMMAND1 | COMMAND2! send stdout of *!COMMAND1! to stdin of *!COMMAND2!
+
+      You can use *!|&! (tcsh) to pipe stdout and stderr together, i.e. merged
+
+    Examples:
+
+      *!$ who | grep 'sam'!    # filters the line(s) with 'sam' from 'who'
+
+      *!$ cat < a.txt | diff -u - b.txt > ab.diff!
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: I/O redirects and pipes continued!
+
+    As we saw before, redirecting output to a file will overwrite the file if
+    it already existed
+
+    Novice programmers typically set *!set -o noclobber! (bash) or *!set noclobber!
+    (tcsh) to avoid accidentally overwriting files with output redirects
+
+      But redirects will obviously no longer work with noclobber (in scripts)
+
+      You can use *!>|! to force redirecting, but this defeats the purpose
+
+    Redirect output to _!/dev/null! if you want to make output data disappear
+    and redirect input from _!/dev/null! to get empty input, without having to
+    create an empty file to redirect stdin from
+
+    Redirect output to _!/dev/tty! to display it and redirect input from
+    _!/dev/tty! to read the keyboard, which are useful to override stdout
+    and stdin redirects that may be active in the context of the shell command
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: environment variables!
+
+    *!NAME1=VALUE1 NAME2=VALUE2 ... COMMAND ARG1 ARG2 ...! (bash)
+
+    *!env NAME1=VALUE1 NAME2=VALUE2 ... COMMAND ARG1 ARG2 ...! (tcsh)
+
+    This sets environment variables temporarily that are visible to the command:
+
+      *!$ echo 'echo "Hello \$NAME"' > greeting!    # create a script
+      *!$ chmod +x greeting!
+      *!$ NAME=Bob ./greeting! (bash)
+      Hello Bob
+
+    To set environment variables visible to all commands in the shell:
+
+      *!export NAME1=VALUE1 NAME2=VALUE2 ...!    # (bash)
+
+      *!setenv NAME VALUE!    # (tcsh)
+
+    Use *!env! without arguments to display the current environment variables
+
+END-OF-PAGE
+echo 'echo "Hello $NAME"' > $workd/ch5_demo_greeting
+chmod +x $workd/ch5_demo_greeting
+demo bash 'NAME=$USER ./ch5_demo_greeting'
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Command syntax: command lists!
+
+      *!COMMAND1; COMMAND2! executes *!COMMAND1! then executes *!COMMAND2!
+
+      *!COMMAND1 & COMMAND2! executes *!COMMAND1! in the background and
+      immediately executes *!COMMAND2! (in the foreground)
+
+      *!COMMAND &! executes *!COMMAND! in the background
+
+      *!COMMAND1 && COMMAND2! if *!COMMAND1! succeeds then execute *!COMMAND2!
+
+        *!$ diff old.cpp new.cpp && echo 'old.cpp is the same as new.cpp'!
+
+      *!COMMAND1 || COMMAND2! if *!COMMAND1! fails then execute *!COMMAND2!
+
+        *!$ test -f foo.cpp || ln -s bar.cpp foo.cpp!
+
+     !*! ! COMMAND ARG1 ARG2 ...!! negates the exit state code of the command
+    
+      *!time COMMAND ARG1 ARG2 ...! gives the execution time of a command
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Background and foreground processes!
+
+    A "foreground process" is a process that takes input from the keyboard and
+    typing ^!^Z! takes a foreground process to the background and suspends it
+
+    Also a command with the suffix *!&! is executed to run in the background
+
+      *!$ cat > saved.txt &!    # this process will be suspended (*!fg! then ^!^D!)
+
+    *!jobs! list the processes that started in the shell, which shows the JOB
+    and process ID (PID) which is a larger number that is also displayed with *!ps!
+
+    The *!fg! command takes a background process to the foreground, use
+    *!fg JOB! to take process with *!JOB! to the foreground
+
+    The *!bg! command takes a suspended background process and runs it in the
+    background, use *!bg JOB! to run a process with *!JOB!
+
+    Use *!kill %JOB! to terminate *!JOB!, *!kill -QUIT %JOB! to stop a process or
+    *!kill -KILL %JOB! to force termination (as a last resort)
+
+END-OF-PAGE
+demo bash 'cat > ch5_demo_saved.txt &' 'jobs' 'fg'
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!The PATH environment variable!
+
+    The shell finds programs by searching the pathnames provided by the *!PATH!
+    environment variable
+
+    Pathnames in *!PATH! are separated by ":"
+    
+      *!$ echo \$PATH!
+      /usr/local/bin:/usr/bin
+
+    You can extend a path by appending to it with *!export PATH=\$PATH:...! (bash),
+    or *!setenv PATH "\$PATH":...! (tchs) but it is not recommended to include _!.!
+    in *!PATH! because it finds files in the current directory that may render
+    utilities useless if executables have the same name as the utility:
+
+      !r!!*!$ export PATH=.:\$PATH!!      # BAD
+      !r!!*!$ echo 'echo oops' > ls!!
+      !r!!*!$ chmod +x ls!!
+      !r!!*!$ ls!!
+      !r!!*!oops!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!Command execution by the shell!
+
+    The shell first parses the command, performing "globbing" by expanding
+    "metacharacters" such as "*" and replacing variables with their values
+
+    Then it tries to execute the simple command (we will get to compound
+    commands expressing iteration and alternation like "while" and "if" later)
+
+    If this is a executable binary, bash does a *!fork!(2) and the child does
+    an *!execve!(2) of the new binary, which sets up the child process's stack
+    with the arguments passed to the binary
+
+    It is then up to the process to work through these arguments, for example
+    with *!getopt!(3) and *!getopt_long!(3)
+
+    Usually a process receives three file descriptors: 0, 1 and 2, which are
+    conventionally interpreted as stdin, stdout and stderr
+
+    It is very common (though certainly not requisite) to use buffering over
+    these file descriptors unless these are tty devices (i.e. interactive I/O)
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!Argument parsing in C with getopt(3)!
+
+    *!int! main(*!int! argc, *!char! *argv[]) {
+      *!int! nflag = 0, ch, fd = -1;
+      *!while! ((ch = getopt(argc, argv, ":nf:")) != -1) {
+        *!switch! (ch) {
+          *!case! 'n': /* -n */
+            nflag = 1; /* -n */
+            *!break!;
+          *!case! 'f': /* -f FILE */
+            ... open file named optarg ...
+            *!break!;
+          *!case! '?':
+          *!default!:
+            ... usage message ...
+            exit(!m!EXIT_FAILURE!!);
+        }
+      }
+      ... handle argv[optind..argc-1] arguments ...
+    }
+
+END-OF-PAGE
+cat > $workd/ch5_demo_catcho.c << END
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int main(int argc, char *argv[])
+{
+  int nflag = 0, ch, fd = -1;
+  char buf[1024];
+  size_t len;
+  while ((ch = getopt(argc, argv, ":nf:")) != -1)
+  {
+    switch (ch)
+    {
+      case 'n':
+        nflag = 1;
+        break;
+      case 'f':
+        if (!strcmp(optarg, "-"))
+          fd = 0;
+        else if ((fd = open(optarg, O_RDONLY, 0)) < 0)
+        {
+          fprintf(stderr, "catcho: %s: %s\n", optarg, strerror(errno));
+          exit(EXIT_FAILURE);
+        }
+        while ((len = read(fd, buf, sizeof(buf))) > 0)
+          write(1, buf, len);
+        if (fd != 0)
+          close(fd);
+        break;
+      case '?':
+      default:
+        fprintf(stderr, "Usage: catcho [-n] [-f FILE] [STRING]\n");
+        exit(EXIT_FAILURE);
+    }
+  }
+  for (; optind < argc; optind++)
+    printf("%s", argv[optind]);
+  if (!nflag)
+    putchar('\n');
+}
+END
+demo bash 'gcc -o ch5_demo_catcho ch5_demo_catcho.c' './ch5_demo_catcho -f ch5_demo_catcho.c "demonstrates getopt(3)"'
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Editing the command line!
+
+    Most shells use *!readline!(3) for user input instead of reading raw _!/dev/tty!
+
+    The *!readline!(3) library support a history mechanism and basic editing
+    with key bindings that are set to emacs key bindings by default; vi key
+    bindings are another option
+
+      ^!↑!   previous command from history        ^!←!   move left
+      ^!↓!   next command from history            ^!→!   move right
+      ^!TAB! autocomplete                         ^!DEL! delete character
+      ^!⌥?!  list possible completions            ^!^L!  clear the screen
+      ^!^R!  search history from the back         ^!^V!  insert next key verbatim
+      ^!^W!  delete word backwards                ^!⌥b!  move backward one word
+      ^!⌥D!  delete word forwards                 ^!⌥f!  move forward one word
+      ^!^U!  delete to the start of the line      ^!^A!  move to the start of the line
+      ^!^K!  delete to the end of the line        ^!^E!  move to the end of the line
+
+      Note: ^!^V! denotes CONTROL-V and ^!⌥?! denotes ALT-? or META-?, which is
+      OPTION-? on Mac OS X with Terminal preferences set to map OPTION to ALT
+
+END-OF-PAGE
+demo 'man 3 readline'
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+ #!More about globbing!
+
+   As mentioned earlier, "globs" are created by "metacharacters", somewhat
+   resembling traditional regular expression syntax, but simpler
+   
+     *!* !is a wildcard representing zero to more filename characters
+
+     *!?! is a wildcard representing one filename character
+
+     *![abc0-9]! and *![^abc0-9]! represent one filename character in the (negated)
+     ranges specified
+
+     Brace expansion: *!{txt,pdf,...}! represents a choice of filename parts
+
+   Example:
+
+     *!$ ls -l ~{sam,max}/[pP]rojects/*/test?.{cpp,c,hpp,h}!
+
+   The canonical implementation is in libc, see *!glob!(3)
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!How to show commands after globbing and variable expansion!
+
+    To visualize the expanded form of a command after globbing and variable
+    expansion, enable command tracing:
+
+      *!$ set -x!    (bash)          *!% set echo!    (tcsh)
+
+    To disable command tracing:
+
+      *!$ set +x!    (bash)          *!% unset echo!    (tcsh)
+
+    Example:
+
+      *!$ set -x!
+      *!$ ls *.cpp!
+      + ls common.cpp main.cpp
+      common.cpp	main.cpp
+      *!$ echo "Hello \$USER, how are you?"!
+      + echo 'Hello sam, how are you?'
+      Hello sam, how are you?
+
+END-OF-PAGE
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=16
+      ;;
+  esac
+done

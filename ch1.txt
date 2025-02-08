@@ -1,0 +1,263 @@
+# ch1.txt
+# Chapter 1 - Introduction
+# Created by Robert van Engelen
+# Distributed under the GPL
+# title created with: toilet --metal -f mono12 UNIX
+________________________________________________________________________________
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                          #!Chapter 1 - Introduction!
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+title="Chapter 1 - Introduction"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f sheep "We will we will rock you!"'
+________________________________________________________________________________
+
+  #!Caveat lector!
+
+    Learning Linux/Unix commands from a book is like visiting a petting zoo to
+    study the diversity of animals in the animal kingdom.
+
+    To truly appreciate their behaviors you have to experience them in the wild.
+
+    Like animals, powerful Linux/Unix commands can bite you.
+
+    Be safe and have fun with Linux!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f sheep "Beh! Sheep are afraid of dangerous animals in petting zoos."'
+________________________________________________________________________________
+
+  #!Typographical conventions used in these pages!
+
+    These conventions help improve readability but are otherwise not essential:
+
+      *!program! or shell *!command! or *!VARIABLE!, for example *!ls -al! and *!PATH!
+
+      _!filename! or directory _!path!, for example _!/usr/bin!
+
+      ^!keypress!, for example ^!^C! (control-C) and ^!ENTER!
+
+      !m!URL!!, for example !m!https://www.gnu.org!!
+
+      !r!incorrect!!, for example !r!if -f \$file; then
+
+      !g!correct!!, for example !g!if [ -f \$file ]; then
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo bash 'printf "ANSI ESC[ CSI sequences \x1b[35mhttps://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences\x1b[0m\n"'
+________________________________________________________________________________
+
+  #!Overview!
+
+    • History of Unix
+    
+    • Unices: GNU-Linux, Linux, Berkeley Unix, Unix System V, Mac OS X
+
+    • Overview of Linux
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f surgery "Get on with it! Start the operation alright!"'
+________________________________________________________________________________
+
+  #!Unix!
+
+    Unix (/ˈjuːnɪks/; trademarked as UNIX) is a family of multitasking,
+    multiuser computer operating systems that derive from the original AT&T
+    Unix
+    
+    Development started in the 1970s at the Bell Labs research center by Ken
+    Thompson, Dennis Ritchie, and others
+
+    The "Unix philosophy": the operating system provides a set of simple tools
+    that each perform a limited, well-defined function
+
+      A shell scripting and command language to combine the tools to perform
+      complex workflows
+
+      A unified filesystem as the main means of communication
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo $'cowsay -f tux "What? That\'s before I was even born!"'
+________________________________________________________________________________
+
+  #!Unix and C!
+
+    UNIX was rewritten in C in 1973 by Dennis Richie and Ken Thompson for
+    portability and allow Unix to reach numerous platforms
+
+    Developed by Dennis Richie, C traces back to B and BCPL
+
+      C compiles to efficient code
+
+      C is a good systems language, allows direct access to resources and
+      supports *!asm! directives to compile assembly code in C source files
+
+      C is standardized by ANSI, starting with C89
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f sheep "Nothing to C here"'
+________________________________________________________________________________
+
+  #!Unices!
+
+    GNU-Linux (GNU stands for Gnu's Not UNIX) project started by Richard
+    Stallman in 1983 as the GNU Operating System, today GNU-Linux runs on top
+    of FreeBSD
+
+    Berkeley UNIX (BSD stands for Berkeley Software Distribution) developed at
+    UC Berkeley with many popular changes and additions
+
+    Mac OS X is based on a version of BSD called Darwin
+
+    Other major versions are UNIX System V (SVR4), Solaris, HP-UX, IBM AIX, QNX
+
+    Unix versions that were originally designed for personal computers based on
+    the Intel x86 include Minix, XINU and Linux
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f tux "Your OS is $OSTYPE"'
+________________________________________________________________________________
+
+  #!Linux!
+
+    Linux (/ˈlɪnəks/) broadly denotes a family of free and open-source software
+    operating systems (OS) built around the Linux kernel
+    
+    Has been around for over 25 years and has become a leading platform for
+    operating system development
+
+    Distributed under the GNU Public License (GPL) !m!https://www.gnu.org/licenses!!
+
+    The Linprog machines in CS use the Gentoo distribution
+    
+    Other popular server distributions include Centos, Debian, Fedora, Linux
+    Mint, OpenSuSE and Ubuntu
+
+    Google Chrome is based on the Linux kernel
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f tux "I was born and raised by a GNU"'
+________________________________________________________________________________
+
+  #!Linux in layers!
+
+    You can view the operating system presentation in layers
+
+      The kernel, which provides access to OS resources, virtual and physical
+
+        The OS state can be observed directly via _!/proc! and _!/sys!
+
+      System calls, which allow us to access and modify OS resources
+
+      Libraries, which provide more digestible access to system calls
+
+      Processes, which take advantage of libraries and sometimes direct system
+      calls
+        
+        For example a shell process, which provides a platform for a user to
+        start other processes and to script repetitious tasks
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Working with Linux layers!
+
+    How do we create and manipulate these various layers?
+
+      Processes
+
+        *!fork!(2), *!execlp!(3), *!wait!(2), *!exit!(3); *!clone!(2)
+
+      Filesystems
+
+        *!mount!(2), *!getdents!(2), *!stat!(2), *!statfs!(2)
+
+      I/O
+
+        *!open!(2), *!read!(2), *!write!(2), *!close!(2), *!socket!(2) et al.
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'cowsay -f daemon "Forking a process"'
+________________________________________________________________________________
+
+  #!Some definitions!
+
+    An "executable" is a file that can be "executed" by an existing process
+
+      A "static" executable is a standalone program that does not need any
+      other runtime support
+
+      A "dynamically linked" executable requires the services of a runtime
+      linker such as _!/lib64/ld-linux-x86-64.so.2! in order to dynamically
+      load shared libraries
+
+      A "script" executable, which requires a separate interpreter such as Perl
+      or Python
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!More definitions!
+
+    A "user shell" provides an environment that accepts keyboard input and
+    output in order to allow a user to execute commands and command-line
+    interface (CLI) programs
+
+    A "built-in command" to a shell does not cause the execution of a new
+    process; often, it is used to change the state of a shell itself
+
+    A "program" started from a shell starts a new process to execute the
+    executable program
+
+    An "alias" is a string that is to be expanded into another command
+
+    A "variable" is a way to reference state in a shell, we also have
+    "environment variables" which specify state for a process
+
+    Command-line "flags" (aka "switches") afford us a method to specify
+    options with commands and programs, generally indicated either by a single
+    dash or a double dash
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Filtering!
+
+    A "filter" should read from its stdin (standard input, file descriptor 0)
+    and write to its stdout (standard output, file descriptor 1); any error or
+    miscellaneous information should be written to stderr (standard error, file
+    descriptor 2)
+
+    Generally, filters should not read configuration files but should instead
+    take their options from command line indicators like "flags"
+
+    Ideally, the output of one filter should be easily readable by another
+    filter
+
+      *!$ ls -l | head -n40 | less!  # read first 40 lines of ls with less
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+demo 'ls -l .. | head -n10 | cowsay -f bunny'

@@ -1,0 +1,554 @@
+# gdb.txt
+# GDB
+# Created by Robert van Engelen
+# Distributed under the GPL
+________________________________________________________________________________
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Source Level Debugging with GDB!
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+title="GDB"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+nodemo
+________________________________________________________________________________
+
+  #!Source Level Debugging!
+
+    A source level debugger has a number of useful features that facilitates
+    debugging your program to analyze problems
+
+      To inspect a program after a crash
+
+      To step through the execution of a program, e.g. from a breakpoint
+
+      To show a trace of function calls up to a point in a program
+
+      To print the values of variables and function arguments
+
+      To display the value of an expression entered
+
+    *!GDB!: the GNU project debugger (comes with the GNU compilers),
+    the GDB home page is at !m!https://www.gnu.org/software/gdb!!
+
+    *!LLDB!: the LLVM debugger (comes with clang, e.g. on Mac OS X),
+    the LLDB home page is at !m!https://lldb.llvm.org!!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!GDB - compiling your code!
+
+    To use GDB compile your C and C++ source code with option *!-g!
+
+    For example:
+
+      *!$ gcc -g -o myprogram myprogram.c!
+
+      *!$ g++ -g -o myprogram myprogram.cpp!
+
+    This generates object code and executables that embed symbolic information
+    in the executables:
+
+       the location of source code instructions corresponding to the binary
+       instructions in machine code
+
+       the names of functions and arguments, variables and other names in the
+       source code
+
+    Select d)emo to compile and debug an example _!gdb_myprogram.c!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+cat > $workd/gdb_myprogram.c << EOF
+#include <stdio.h>
+
+int foo(int);
+int bar(int);
+
+int main(int argc, char *argv[])
+{
+  int a, i;
+
+  for (i = 0; i < argc; i++)
+    printf("argv[%d] = %s\n", i, argv[i]);
+
+  a = foo(3);
+  printf("foo() returned %d\n", a);
+
+  return 0;
+}
+
+int foo(int a)
+{
+  printf("Executing foo(a=%d)\n", a);
+
+  return bar(a);
+}
+
+int bar(int b)
+{
+  printf("Executing bar(b=%d)\n", b);
+
+  return 2*b;
+}
+EOF
+demo 'gcc -g -o myprogram gdb_myprogram.c' 'gdb myprogram' 'lldb myprogram'
+________________________________________________________________________________
+
+  #!The GDB commmand!
+
+    Invoke GDB with the *!gdb! command and pass the executable as an argument:
+
+      *!$ gdb myprogram!
+
+    This starts a line-oriented session in GDB to debug _!myprogram!
+
+    You can also attach a process to GDB with option *!-p!, for example:
+
+      *!$ ps -o pid,args | grep 'myprogram'!
+      12345 myprogram
+      *!$ gdb -p 12345!
+
+      where the process ID and command with arguments is listed with
+      *!ps -o pid,args!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Running your program in the debugger!
+
+    After loading your program in GDB or LLDB, you run with *!run!:
+
+      *!$ gdb myprogram!
+      ...
+      *!(gdb) run!      # run program till end or ^!^C! to interrupt it
+
+    You can pass arguments to your program with *!run!:
+
+      *!$ gdb myprogram!
+      ...
+      *!(gdb) run -a opt arg < infile.txt > outfile.txt!
+
+    LLDB does not permit IO redirects, instead you will have to use:
+
+      *!(lldb) settings set target.input-path infile.txt!
+      *!(lldb) settings set target.output-path outfile.txt!
+      *!(lldb) run -a opt arg!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Debugger commands!
+
+    • *!list! to list source code
+
+    • *!break! to set a breakpoint and *!delete! to delete it
+
+    • *!step! and *!next! to execute one line of source code after a break
+
+    • *!cont! to continue execution after a break
+
+    • *!finish! and *!until! to continue execution until function returns
+
+    • *!print! and *!display! to show the values of variables and arguments
+
+    • *!backtrace! to print a stack trace, with *!up! and *!down! to navigate
+      the stack trace
+
+    • *!set! and *!call! to set variables and make function calls
+
+    • *!quit! to exit the debugger
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!list: display source code!
+
+    You can display source code at a specified line or function with *!list!:
+
+      *!list [[FILENAME:]LINENUM[,LINENUM] | [FILENAME:]FUNCTIONNAME]!
+
+    For example:
+
+      *!(gdb) list!                 # list 10 lines from current location
+      *!(gdb) list 72!              # list lines 67 to 76 (10 lines of context)
+      *!(gdb) list myprogram.c:72!  # list line 67 to 76 of myprogram.c
+      *!(gdb) list 72,80!           # list lines 72 to 80
+      *!(gdb) list main!            # list 10 lines of function main
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!break: setting a breakpoint!
+
+    *!break [LINENUM|FUNCTION] [if CONDITION]! sets a breakpoint at line
+    *!LINENUM! or at the start of function *!FUNCTION! and breaks execution if
+    the specified *!CONDITION! is met:
+
+      *!(gdb) break!              # sets breakpoint at the current line number
+      *!(gdb) break 74!           # sets breakpoint at line 74
+      *!(gdb) break foo!          # sets breakpoint at the start of function foo()
+      *!(gdb) break 60 if i==10!  # sets breakpoint at line 60 if the value of
+                               # variable i is 10
+
+    *!delete [BREAKPOINT]! removes a breakpoint or all breakpoints:
+
+      *!(gdb) delete 3!           # remove the 3rd breakpoint
+      *!(gdb) delete!             # remove all breakpoints
+
+    Use *!break delete [NUM]! with LLDB:
+
+      *!(lldb) break delete 3!    # remove the 3rd breakpoint
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Example!
+
+    *!gdb myprogram!
+    *!(gdb) break foo!
+    Breakpoint 1 at 0x80483ed: file myprogram.c, line 21.
+    *!(gdb) run!
+    Starting program: /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+    argv[0] = /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+
+    Breakpoint 1, foo (a=3) at myprogram.c:21
+    21        printf("Executing foo(a=%d)\n", a);
+    *!(gdb) list 19,24!
+    19      int foo(int a)
+    20      {
+    21        printf("Executing foo(a=%d)\n", a);
+    22      
+    23        return bar(a);
+    24      }
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!step: stepping through source code!
+
+    After a breakpoint you can step through the source code with *!step [NUM]!
+    to execute one or more statements as specified by *!NUM! (default is 1)
+
+      ...
+      Breakpoint 1, foo (a=3) at myprogram.c:21
+      21        printf("Executing foo(a=%d)\n", a);
+      *!(gdb) list 19,24!
+      19      int foo(int a)
+      20      {
+      21        printf("Executing foo(a=%d)\n", a);
+      22      
+      23        return bar(a);
+      24      }
+      *!(gdb) step!
+      Executing foo(a=3)
+      23        return bar(a);
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!next: stepping through source code!
+
+    Use *!next! to step over function calls instead of stepping through them:
+
+      ...
+      23        return bar(a);
+      *!(gdb) next!
+      Executing bar(b=3)
+      24      }
+      *!(gdb) list 19,24!
+      19      int foo(int a)
+      20      {
+      21        printf("Executing foo(a=%d)\n", a);
+      22      
+      23        return bar(a);
+      24      }
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!cont: continue after a breakpoint to the next breakpoint or program exit!
+
+    After a breakpoint you can continue executing until the next breakpoint
+    with *!cont!:
+
+      *!(gdb) break foo!
+      Breakpoint 1 at 0x80483ed: file myprogram.c, line 21.
+      *!(gdb) run!
+      Starting program: /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+      argv[0] = /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+
+      Breakpoint 1, foo (a=3) at myprogram.c:21
+      21        printf("Executing foo(a=%d)\n", a);
+      *!(gdb) cont!
+      Continuing.
+      Executing foo(a=3)
+      Executing bar(b=3)
+      foo() returned 6
+
+      Program exited normally.
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!finish: finish function call!
+
+    You can continue execution until control leaves the current function with
+    *!finish!
+
+      *!(gdb) break foo!
+      Breakpoint 1 at 0x80483ed: file myprogram.c, line 21.
+      *!(gdb) run!
+      Starting program: /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+      argv[0] = /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+
+      Breakpoint 1, foo (a=3) at myprogram.c:21
+      21        printf("Executing foo(a=%d)\n", a);
+      Target 0: (myprogram) stopped.
+      *!(gdb) finish!
+      Run till exit from #0  foo (a=3) at myprogram.c:21
+      Executing foo(a=3)
+      Executing bar(b=3)
+      0x080483c7 in main (argc=2, argv=0xbfef8784) at myprogram.c:13
+      13        a = foo(3);
+      Value returned is \$1 = 6
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!until: continue until a line!
+
+    You can continue execution up to a specified line with *!until LINENUM!:
+
+      ...
+      Breakpoint 3, foo (a=3) at myprogram.c:21
+      21        printf("Executing foo(a=%d)\n", a);
+      *!(gdb) list 19,24!
+      19      int foo(int a)
+      20      {
+      21        printf("Executing foo(a=%d)\n", a);
+      22      
+      23        return bar(a);
+      24      }
+      *!(gdb) until 23!
+      Executing foo(a=3)
+      foo (a=3) at myprogram.c:23
+      23        return bar(a);
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!print: show the value of an expression!
+
+    You can display the value of an expression containing variables with *!print!:
+
+      *!print[/FORMAT] [EXPRESSION]!
+
+    where *!FORMAT! is:
+
+      *!/d! print decimal integer
+      *!/u! print decimal unsigned integer
+      *!/f! print float
+      *!/c! print char
+      *!/o! print octal
+      *!/x! print hexadecimal
+
+    When *!FORMAT! is not specified it automatically uses the the type of the
+    *!EXPRESSION! specified
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!Examples!
+
+    *!(gdb) print i!              # prints the value of variable i
+    *!(gdb) print a[i]!           # prints the value of a[i]
+    *!(gdb) print/x a[i]!         # prints a[i] in hexadecimal
+    *!(gdb) print a[i]-b[i]!      # prints the value of a[i]-b[i]
+    *!(gdb) print a!              # prints the values in the array a
+    *!(gdb) print p!              # prints the address contained in pointer p
+    *!(gdb) print *p!             # prints the value pointed to by p
+    *!(gdb) print p->next!        # prints a field of the struct pointed to by p
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!display: show the value of an expression!
+
+    To display the value of one or more expressions every step through your
+    program, use *!display!:
+
+      *!display[/FORMAT] [EXPRESSION]!
+
+    To remove a display that you have set or remove them all, use
+    
+      *!undisplay [NUM]!
+
+    where *!NUM! is the display number
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!backtrace: display trace of function calls!
+
+    Use *!backtrace [NUM]! to show the trace of all function calls made to the
+    current point in the program execution, with their arguments and values,
+    where up to *!NUM! calls are shown
+
+      *!$ gdb myprogram!
+      ...
+      *!(gdb) break bar!
+      *!(gdb) run!
+      Starting program: /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+      argv[0] = /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+      Executing foo(a=3)
+
+      Breakpoint 4, bar (b=3) at myprogram.c:28
+      *!(gdb) backtrace!
+      #0  bar (b=3) at myprogram.c:28
+      #1  0x0804840b in foo (a=3) at myprogram.c:23
+      #2  0x080483c7 in main (argc=2, argv=0xbff0d3a4) at myprogram.c:13
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!up and down: navigate the backtrace!
+
+    Use *!up! and *!down! to navigate the backtrace up/down, which allows you
+    to print the values of arguments and the local variables with *!print!
+
+      *!(gdb) break bar!
+      *!(gdb) run!
+      ...
+      *!(gdb) backtrace!
+      ...
+      *!(gdb) print b!     # print value of argument b of bar()
+      \$1 = 3
+      *!(gdb) up!
+      #1  0x0804840b in foo (a=3) at myprogram.c:23
+      23        return bar(a);
+      *!(gdb) print a!     # print value of argument b of foo()
+      \$2 = 3
+      *!(gdb) down!
+      #0  bar (b=3) at myprogram.c:28
+      28        printf("Executing bar(b=%d)\n", b);
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!set: assign a value to a variable!
+
+    Use *!set VARIABLE=EXPRESSION! to assign the value of *!EXPRESSION! to a
+    *!VARIABLE!
+
+      *!(gdb) break 14!
+      *!(gdb) run!
+      ...
+      Breakpoint 1, main (argc=1, argv=0xbff150d4) at myprogram.c:14
+      14        printf("foo() returned %d\n", a);
+      *!(gdb) print a!
+      \$1 = 6
+      *!(gdb) set a=5!
+      *!(gdb) cont!
+      Continuing.
+      foo() returned 5
+
+    Unfortunately, some GDB versions report an error when trying to set some
+    1-character variables: Ambiguous set command "a=5": .
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!call: call a function!
+
+    You can call a function when the program is actively being debugged
+
+    Use *!call FUNCNAME(ARGUMENTS)! to call a function
+
+      *!$ gdb myprogram!
+      ...
+      *!(gdb) break foo!
+      *!(gdb) run!
+      Starting program: /home/faculty/engelen/Courses/COP4342/tmp/myprogram 
+      argv[0] = /home/faculty/engelen/Courses/COP4342/tmp/myprogram
+
+      Breakpoint 1, foo (a=3) at myprogram.c:21
+      21        printf("Executing foo(a=%d)\n", a);
+      *!(gdb) call bar(5)!
+      Executing bar(b=5)
+      \$1 = 10
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!quit: exit the debugger!
+
+    Use *!quit! to exit the debugger
+
+    All program debugging information is lost and the program is terminated
+    when you exit the debugger
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo
+________________________________________________________________________________
+
+  #!GDB versus LLDB!
+
+    GDB and shorthand                   LLDB
+    *!backtrace! and *!bt!                    *!bt!
+    *!break! and *!b!                         *!b!
+    *!call!                                same
+    *!cont! and *!c!                          same
+    *!delete! and *!d!                        *!break del!
+    *!display!                             same
+    *!finish!                              same
+    *!next! and *!n!                          same
+    *!list! and *!l!                          same
+    *!run! and *!r!                           same
+    *!print! and *!p!                         same
+    *!quit! and *!q!                          same
+    *!set VAR=EXPR!                        *!expr VAR=EXPR!
+    *!step! and *!s!                          same
+    *!until! and *!u!                         *!thread until!
+
+    See also !m!https://lldb.llvm.org/lldb-gdb.html!!
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+nodemo

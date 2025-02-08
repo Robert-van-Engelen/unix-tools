@@ -1,0 +1,31 @@
+#!/usr/bin/awk -f
+# gen-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+BEGIN {
+  FS=""
+  page = 0
+  while ( (getline line < "pre-pages") > 0 ) {
+    print line
+  }
+}
+/^___/ {
+  page++
+  print "      ;;"
+  print "    " page ") #-------------------- PAGE " page " --------------------"
+  print "      show << END-OF-PAGE"
+}
+/^'''/ {
+  print "END-OF-PAGE"
+}
+!/^___|^'''/ {
+  print
+}
+END {
+  print "      ;;"
+  print "    *) #-------------------- END --------------------"
+  print "      page=" page
+  print "      ;;"
+  print "  esac"
+  print "done"
+}

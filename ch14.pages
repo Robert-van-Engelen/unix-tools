@@ -1,0 +1,834 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch14.txt
+# Chapter 14 - awk
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 14 - awk!
+
+
+END-OF-PAGE
+title="Chapter 14 - awk"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f eyes "Anything AWKward here?"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!awk!
+
+    The *!awk! (Aho, Weinberger, Kernighan) utility is a powerful text
+    processing and analysis utility that filters and manipulates text input,
+    typically with lines arranged in columns separated by the field separator,
+    which is white space (blanks and tabs) by default
+
+    *!awk 'AWK script goes here' FILE1 FILE2...! applies the AWK script to the
+    specified files or to stdin when no files are specified
+
+    *!awk -f script.awk FILE1 FILE2...! applies _!script.awk! to the specified
+    files or to stdin when no files are specified
+
+    Options:
+
+      *!-Fc! use *!c! as a field separator (assigns the AWK *!FS! variable)
+
+      *!-f FILE! read AWK script _!FILE!
+
+END-OF-PAGE
+nodemo
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!awk scripts!
+
+    An AWK script consists of a sequence of lines with pattern-action pairs:
+
+      *!pattern { action }!
+
+    AWK processes each line of input and when a pattern matches a line the
+    corresponding action is performed
+
+      An action without a pattern is performed on each line of input, that is,
+      without a pattern all lines are matched
+
+      A pattern without an action results in all lines matching the pattern
+      being printed to stdout, that is, the default action is to print the line
+
+    A matched line of input is referenced in actions by *!\$0!
+    
+    Fields on a matched line of input are referenced in actions with *!\$1!, *!\$2!, ...
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!awk patterns!
+
+    An AWK pattern is one of the following:
+
+      *!/PATTERN/! an AWK regular expression pattern
+
+      A *!CONDITION! is a condition with relational operators, such as *!\$1 > 0!
+      to test that the first field *!\$1! is a positive numeric value, the
+      corresponding action is performed when the condition is true
+
+      A *!FIELD ~ /PATTERN/! checks if a regular expression matches a
+      specific field *!\$1!, *!\$2!, ... in the input to perform the
+      corresponding action
+
+      *!BEGIN! performs the corresponding action before input is processed
+
+      *!END! performs the corresponding action at the end of input
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!awk script example!
+
+    *!$ cat sum.awk!
+    BEGIN { sum=0 }
+    { print \$1; sum = sum+\$1 }
+    END { print "==== +\\n", sum }
+    *!$ cat amounts.txt!
+    23 balls
+    53 dolls
+    6 widgets
+    *!$ awk -f sum.awk < amounts.txt!
+    23
+    53
+    6
+    ==== +
+     82
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!awk pattern matching logic and ranges!
+
+    Multiple patterns can be combined with *!&&! and *!||! for conjunction and
+    disjunction, respectively, for example:
+
+      *!\$1 > 0 && \$2 ~ /^a/ { print \$2 }!
+
+    A pattern match can be negated with!*! ! !!(not), for example:
+
+     !*! ! /TODO/!!  # print lines that do not contain TODO
+
+    A range of lines is matched with two patterns separated by a comma as in
+    *!PATTERN1,PATTERN2!, for example:
+
+      *!/^{/,/^}/!  # print lines from { to } (each { and } is on a new line)
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!awk actions!
+
+    *!print arg1, arg2, ...! prints the values of the arguments (expressions)
+
+    *!printf "format string", arg1, arg2, ...! prints formatted values using
+    *!%d! (decimal), *!%f! (float), *!%o! (octal), *!%s! (string), *!%x! (hex)
+
+    *!var = expression! assigns a variable the value of an expression
+
+    *!var[string] = expression! assigns an associative array
+
+    *!if (condition) { ... } else { ... }! an if-then with optional else
+
+    *!while (condition) { ... }! and *!do { ... } while (condition)!
+
+    *!for (init; condition; increment) { ... }!
+
+    *!for (var in array) { ... }!
+
+    *!break! and *!continue! statements for loops
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!awk example: selecting fields in a file!
+
+    *!{ print \$1, \$3 }! # cut file to column 1 and 3 only
+
+    For example to print file sizes that are larger than 1000:
+
+      *!$ ls -l | awk '\$5 > 1000 { print \$5; }'!
+
+    Another example:
+
+      *!$ awk '{ print \$1, \$3 }' << EOF!
+      *!> plym    fury    1970    73      2500!
+      *!> chevy   malibu  1999    60      3000!
+      *!> ford    mustang 1965    45      10000!
+      *!> EOF!
+      plym 1970
+      chevy 1999
+      ford 1965
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Selecting fields with the cut utility!
+
+    The *!cut! utility can also be used to cut a file into specific fields:
+
+      *!cut -d DEL -f NUM1,NUM2,... FILE1 FILE2 ...!
+
+    For example:
+
+      *!$ cut -d: -f1 /etc/passwd!             # print account user names
+
+      *!$ awk -F: '{ print \$1 }' /etc/passwd!  # outputs the same
+
+    The *!paste! utility pastes lines of multiple files into single lines
+    spacing them with a tab delimiter, use *!-d DEL! to set the delimiter
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!awk functions and arithmetic!
+
+    You can use AWK functions such as (see *!awk!(1) man page):
+    
+      *!length(str)! returns the length of string *!str!
+
+      *!length! returns the length of \$0 (the current line)
+
+      *!index(str1,str2)! returns the index of *!str2! in *!str1!
+
+      *!substr(str,pos,len)! returns the substring at *!pos! of length *!len!
+
+      *!split(str,arr,del)! *!arr[1]!...*!arr[n]! is filled with tokens
+      (substrings) split from *!str! with each token delimited by character *!del!
+
+    AWK has the usual arithmetic operators you find in C, including assignment
+    update operators such as *!+=! and the pre- and post-increment *!++! and *!--!
+
+END-OF-PAGE
+nodemo
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!awk built-in variables!
+
+    *!FS! input field separator (default is space or tab), assignable
+
+    *!RS! input record separator (default newline), assignable
+
+    *!OFS! output field separator (default space), assignable
+
+    *!ORS! output record separator (default newline), assignable
+
+    *!NF! number of fields in the current record
+
+    *!NR! record number of the current record
+
+    *!FILENAME! name of the current input file, or null for stdin
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!awk example!
+
+    *!$ cat cars.csv!                # a CSV file
+    plym,fury,1970,73,2500
+    ...
+    *!$ awk 'BEGIN { FS="," }!
+    *!> { print NR, \$1 }!
+    *!> END { print "records:", NR }' cars.csv!
+    1 plym
+    2 chevy
+    3 ford
+    4 volvo
+    5 ford
+    6 chevy
+    7 bmw
+    8 honda
+    9 ford
+    10 toyota
+    11 chevy
+    12 ford
+    records: 12
+
+END-OF-PAGE
+cat > $workd/cars.csv << EOF
+plym,fury,1970,73,2500
+chevy,malibu,1999,60,3000
+ford,mustang,1965,45,10000
+volvo,s80,1998,102,9850
+ford,thundbd,2003,15,10500
+chevy,malibu,2000,50,3500
+bmw,325i,1985,115,450
+honda,accord,2001,30,6000
+ford,taurus,2004,10,17000
+toyota,rav4,2002,180,750
+chevy,impala,1985,85,1550
+ford,explor,2003,25,9500
+EOF
+cat > $workd/cars_csv.awk << EOF
+BEGIN { FS="," }
+{ print NR, \$1 }
+END { print "records:", NR }
+EOF
+demo 'cat cars.csv' 'cat cars_csv.awk' 'awk -f cars_csv.awk cars.csv'
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!awk regular expressions!
+
+    *!gawk! (GNU AWK) has an extended regular expression syntax, but *!awk!
+    regular expression syntax only offers the following meta operators:
+
+      *!.!                  wildcard, matches any character except newline
+
+      *![abc0-9]!           character class with ranges, *![^abc0-9]! is negated
+
+      *!PATTERN1|PATTERN2!  alternation
+
+      *!(PATTERN)!          grouping
+
+      *!PATTERN?!           zero or one
+
+      *!PATTERN+!           one or more
+
+      *!^PATTERN!           match at begin of line
+
+      *!PATTERN\$!           match at end of line
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!awk script example!
+
+    *!$ cat removecomments.awk!
+    ! /^#|^[ \\t]+#/ { print \$0 }
+    *!$ cat script.bash!
+    #!/bin/bash
+    # show who i am and which PID I use
+    echo \$0 \$\$
+    *!$ awk -f removecomments.awk script.bash!
+    echo \$0 \$\$
+
+END-OF-PAGE
+nodemo
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!awk pattern-matching expressions!
+
+    Pattern-matching expressions are used to check if a regular expression
+    matches *!~! or does not match!*! !~ !!a field 
+
+    For example:
+
+      *!\$1 ~ /^[0-9]+\$/!  # matches if the first field is an integer value
+
+      !*!\$1 !~ /^#/!!       # the first field does not start a # comment
+
+      *!\$1 ~ /^[0-9]+\$/ && \$2 ~ /^[a-z]+\$/!
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!awk examples! (see Ch.14 p.629, press ^!d! to demo)
+!*!
+    $ awk '{ print }' cars
+    $ awk '/chevy/' cars
+    $ awk '{ print \$3, \$5 }' cars
+    $ awk '/chevy/ { print \$3, \$5 }
+    $ awk '/h/' cars
+    $ awk '\$1 ~ /h/' cars
+    $ awk '\$2 ~ /^h/' cars
+    $ awk '\$2 ~ /^[tm]/ { print \$3, \$2, "\$" \$5 }' cars
+    $ awk '\$3 ~ /5\$/ { print \$3, \$1, "\$" \$5 }' cars
+    $ awk '\$3 == 1985' cars
+    $ awk '\$5 <= 3000' cars
+    $ awk '2000 <= \$5 && \$5 < 9000' cars
+    $ awk '/volvo/,/bmw/' cars
+    $ awk '{ print length, \$0 }' cars | sort
+    $ awk 'length > 24 { print NR }' cars
+    $ awk 'NR == 2, NR == 4 { print NR }' cars
+    $ awk 'NR == 2, NR == 4' cars
+    $ awk 'END { print NR, "cars for sale."' cars
+!!
+END-OF-PAGE
+cat > $workd/cars << EOF
+plym    fury    1970    73      2500
+chevy   malibu  1999    60      3000
+ford    mustang 1965    45      10000
+volvo   s80     1998    102     9850
+ford    thundbd 2003    15      10500
+chevy   malibu  2000    50      3500
+bmw     325i    1985    115     450
+honda   accord  2001    30      6000
+ford    taurus  2004    10      17000
+toyota  rav4    2002    180     750
+chevy   impala  1985    85      1550
+ford    explor  2003    25      9500
+EOF
+cat > $workd/pr_header.awk << EOF
+BEGIN { print "Make    Model   Year    Miles   Price" }
+      { print }
+EOF
+cat > $workd/pr_header2.awk << EOF
+BEGIN {
+        print "Make    Model   Year    Miles   Price"
+        print "----------------------------------------"
+      }
+      { print }
+EOF
+cat > $workd/separ_demo.awk << EOF
+      {
+        if (\$1 ~ /ply/)  \$1 = "plymouth"
+        if (\$1 ~ /chev/) \$1 = "chevrolet"
+        print
+      }
+EOF
+cat > $workd/ofs_demo.awk << EOF
+BEGIN { OFS = "\t" }
+      {
+        if (\$1 ~ /ply/)  \$1 = "plymouth"
+        if (\$1 ~ /chev/) \$1 = "chevrolet"
+        print
+      }
+EOF
+cat > $workd/printf_demo.awk << EOF
+BEGIN {
+        print "                                 Miles"
+        print "Make       Model       Year      (000)       Price"
+        print \\
+        "--------------------------------------------------"
+      }
+      {
+        if (\$1 ~ /ply/)  \$1 = "plymouth"
+        if (\$1 ~ /chev/) \$1 = "chevrolet"
+        printf "%-10s %-8s    %2d   %5d     \$ %8.2f\n",\\
+            \$1, \$2, \$3, \$4, \$5
+      }
+EOF
+cat > $workd/redirect_demo.awk << EOF
+/chevy/    { print > "redirect_demo_chevfile" }
+/ford/     { print > "redirect_demo_fordfile" }
+END        { print "done." }
+EOF
+cat > $workd/summary_demo.awk << EOF
+BEGIN {
+        yearsum = 0; costsum = 0
+        newcostsum = 0; newcount = 0
+      }
+      {
+        yearsum += \$3
+        costsum += \$5
+      }
+\$3 > 2000 { newcostsum += \$5; newcount++ }
+END   {
+        printf "Average age of cars is %4.1f years\n",\\
+            2006 - (yearsum/NR)
+        printf "Average cost of cars is \$%7.2f\n",\\
+            costsum/NR
+        printf "Average cost of newer cars is \$%7.2f\n",\\
+            newcostsum/newcount
+      }
+EOF
+cat > $workd/price_range_demo.awk << EOF
+      {
+        if (\$5 <= 5000)      \$5 = "inexpensive"
+        else if (\$5 < 10000) \$5 = "please ask"
+        else                 \$5 = "expensive"
+        #
+        printf "%-10s %-8s    %2d   %5d     %-12s\n",\\
+            \$1, \$2, \$3, \$4, \$5
+      }
+EOF
+cat > $workd/manuf_demo.awk << EOF
+      { manuf[\$1]++ }
+END   { for (name in manuf) print name, manuf[name] }
+EOF
+demo "cat cars"\
+       "awk '{ print }' cars"\
+       "awk '/chevy/' cars"\
+       "awk '{ print \$3, \$5 }' cars"\
+       "awk '/chevy/ { print \$3, \$5 }' cars"\
+       "awk '/h/' cars"\
+       "awk '\$1 ~ /h/' cars"\
+       "awk '\$2 ~ /^h/' cars"\
+       "awk '\$2 ~ /^[tm]/ { print \$3, \$2, \"\$\" \$5 }' cars"\
+       "awk '\$3 ~ /5\$/ { print \$3, \$1, \"\$\" \$5 }' cars"\
+       "awk '\$3 == 1985' cars"\
+       "awk '\$5 <= 3000' cars"\
+       "awk '2000 <= \$5 && \$5 < 9000' cars"\
+       "awk '/volvo/, /bmw/' cars"\
+       "awk '/chevy/, /ford/' cars"\
+       "cat pr_header.awk; awk -f pr_header.awk cars"\
+       "cat pr_header2.awk; awk -f pr_header2.awk cars"\
+       "awk '{ print length, \$0 }' cars | sort"\
+       "awk 'length > 24 { print NR }' cars"\
+       "awk 'NR == 2, NR == 4 { print NR }' cars"\
+       "awk 'NR == 2, NR == 4' cars"\
+       "awk 'END { print NR, \"cars for sale.\" }' cars"\
+       "cat separ_demo.awk; awk -f separ_demo.awk cars"\
+       "cat ofs_demo.awk; awk -f ofs_demo.awk cars"\
+       "cat printf_demo.awk; awk -f printf_demo.awk cars"\
+       "cat redirect_demo.awk; awk -f redirect_demo.awk cars; cat redirect_demo_chevfile"\
+       "cat summary_demo.awk; awk -f summary_demo.awk cars"\
+       "cat price_range_demo.awk; awk -f price_range_demo.awk cars"\
+       "cat manuf_demo.awk; awk -f manuf_demo.awk cars"
+      ;;
+    *) #-------------------- END --------------------
+      page=16
+      ;;
+  esac
+done

@@ -1,0 +1,1149 @@
+#!/bin/bash
+# pre-pages
+# Created by Robert van Engelen
+# Distributed under the GPL
+
+theme=1     # default theme
+shell=bash  # shell to use for demos (bash or tcsh)
+workd="."   # work directory to use for shell demos
+title="Welcome back $USER" # title of the presentation (<40 chars)
+wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+
+#====================
+
+page=1
+back=1
+last=1
+show=0
+
+#====================
+
+function navigate() {
+  while true; do
+    read -rsn1 key < /dev/tty
+    case $key in 
+      $'\e'|'[')
+        ;;
+      *)
+        break;
+        ;;
+    esac
+  done
+  show=0
+  case $key in
+    p|D)
+      if [[ $page > 1 ]]; then
+        (( page-- ))
+      fi
+      ;;
+    n|C)
+      (( page++ ))
+      ;;
+    h)
+      back=$page
+      page=1
+      ;;
+    f|/)
+      echo
+      read -p "Find (regex) ? " key < /dev/tty
+      if [ -n "$key" ]; then
+        awk "/ PAGE / { page = \$4 }
+             /$key/ { if (page > 0) print \"Page\", page, \": \", \$0 }" $0
+        echo
+        read -n1 -p "Press a key to continue " key < /dev/tty
+      fi
+      ;;
+    g)
+      back=$page
+      echo
+      read -p "Page? " page < /dev/tty
+      ;;
+    b)
+      local temp
+      temp=$page
+      page=$back
+      back=$temp
+      ;;
+    d)
+      show=1
+      ;;
+    s)
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "^D to exit when done with $shell"
+      if [ -d $workd ]; then
+        pushd $workd > /dev/null
+      else
+        pushd . > /dev/null
+      fi
+      if [ "$shell" = "bash" ]; then
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        tcsh -i < /dev/tty
+      fi
+      popd
+      ;;
+    o)
+      if [[ $page > 0 ]]; then
+        back=$page
+      fi
+      page=0
+      ;;
+    u)
+      echo
+      read -n1 -p "Download update (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        if which wget; then
+          echo "Saved old $0 as $0.old"
+          mv -f $0 $0.old
+          echo "Getting $0 from $wsite..."
+          wget $wsite/$0
+          chmod +x $0
+          read -n1 -p "Press a key to restart " key < /dev/tty
+          exec $0
+        else
+          echo "No wget found, you need to install wget first"
+        fi
+      fi
+      ;;
+    q)
+      echo
+      read -n1 -p "Exit (y/n)? " key < /dev/tty
+      if [ $key = "y" ]; then
+        echo -e "\nBye!\n"
+        exit 0
+      fi
+      ;;
+  esac
+}
+
+#====================
+
+function settings() {
+  case $theme in
+    1)
+      bright="1;"
+      bcolor="1;33;44"
+      ;;
+    2)
+      bright="1;"
+      bcolor="1;37;100"
+      ;;
+    3)
+      bright=""
+      bcolor=46
+      ;;
+    4)
+      bright=""
+      bcolor="30;47"
+      ;;
+    5)
+      bright=""
+      bcolor=42
+      ;;
+  esac
+}
+
+#====================
+
+function show() {
+  clear -x
+  printf "\e[0m\e[${bcolor};1m%40s\e[0m\e[${bcolor}m%40s\e[0m\n" "$title" "$shell p$page($back)"
+  sed \
+  -e "s/!#!/[${bcolor};1m/g" \
+  -e "s/!_!/[4m/g" \
+  -e "s/!\*!/[1m/g" \
+  -e "s/!\^!/[7m/g" \
+  -e "s/#!\([^!]*\)!/[${bcolor};1m\1[0m/g" \
+  -e "s/_!\([^!]*\)!/[4m\1[24m/g" \
+  -e "s/\*!\([^!]*\)!/[1m\1[22m/g" \
+  -e "s/\^!\([^!]*\)!/[7m\1[27m/g" \
+  -e "s/!k!/[30m/g" \
+  -e "s/!r!/[31m/g" \
+  -e "s/!g!/[32m/g" \
+  -e "s/!y!/[33m/g" \
+  -e "s/!b!/[34m/g" \
+  -e "s/!m!/[35m/g" \
+  -e "s/!c!/[36m/g" \
+  -e "s/!w!/[37m/g" \
+  -e "s/!K!/[40m/g" \
+  -e "s/!R!/[41m/g" \
+  -e "s/!G!/[42m/g" \
+  -e "s/!Y!/[43m/g" \
+  -e "s/!B!/[44m/g" \
+  -e "s/!M!/[45m/g" \
+  -e "s/!C!/[46m/g" \
+  -e "s/!W!/[47m/g" \
+  -e "s/!!/[0m/g"
+  printf "\e[0m\e[${bcolor}m$(date '+%H:%M')             \e[4mp\e[24mrev \e[4mn\e[24mext \e[4mh\e[24mome \e[4mf\e[24mind \e[4mg\e[24moto \e[4mb\e[24mack \e[4md\e[24memo \e[4ms\e[24mhell \e[4mo\e[24mptions \e[4mu\e[24mpdate \e[4mq\e[24muit ?\e[0m"
+  navigate
+}
+
+#====================
+
+function demo() {
+  if [ $show = 1 ]; then
+    local sh
+    sh=$shell
+    if [ "$1" = "bash" ]; then
+      sh=bash
+      shift
+    elif [ "$1" = "tcsh" ]; then
+      sh=tcsh
+      shift
+    fi
+    if [ -d $workd ]; then
+      pushd $workd > /dev/null
+    else
+      pushd . > /dev/null
+      printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
+    fi
+    if [ $# -eq 1 ]; then
+      if [ "$sh" = "bash" ]; then
+        printf "\n\e[1m$ "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.bash_history
+        bash -c "$1"
+      else
+        printf "\n\e[1m%% "
+        echo -n $1
+        printf "\e[0m\n"
+        echo "$1" > ~/.history
+        echo "$1" | tcsh
+      fi
+      navigate
+    else
+      printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      if [ "$sh" = "bash" ]; then
+        cat /dev/null > ~/.bash_history
+        echo "$ history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.bash_history
+          echo "    $1"
+          shift
+        done
+        PS1="$ " PS2="> " bash -i < /dev/tty
+      else
+        cat /dev/null > ~/.history
+        echo "% history"
+        while [ $# -ne 0 ]; do
+          echo "$1" >> ~/.history
+          echo "    $1"
+          shift
+        done
+        tcsh -i < /dev/tty
+      fi
+    fi
+    popd
+  fi
+}
+
+#====================
+
+function nodemo() {
+  if [ $show = 1 ]; then
+    printf "\nSorry, no demo for this page, type 's' to enter $shell "
+    navigate
+  fi
+}
+
+#====================
+
+settings
+while true; do
+  case "$page" in
+    0) #-------------------- OPTIONS --------------------
+      show << END-OF-PAGE
+
+  #!Options!
+
+    _!Theme!
+
+      ^!1!) !b!!^!  !! bold blue
+      ^!2!) !k!!^!  !! dark night
+      ^!3!) !c!!^!  !! subtle cyan
+      ^!4!) !w!!^!  !! gray shades
+      ^!5!) !g!!^!  !! going green
+
+    _!Default shell! = $shell
+
+      ^!6!) bash
+      ^!7!) tcsh
+
+    _!Working directory! = $workd
+
+      ^!8!) change
+
+    Press ^!b! to go back
+
+END-OF-PAGE
+      
+      case $key in
+        [1-5])
+          theme=$key
+          ;;
+        6)
+          shell=bash
+          ;;
+        7)
+          shell=tcsh
+          ;;
+        8)
+          local dir
+          read -p ~/directory? dir < /dev/tty
+          if [ -d ~/$dir ]; then
+            workd=~/$dir
+          else
+            printf "Not a valid directory"
+          fi
+          ;;
+      esac
+      settings
+# ch6.txt
+# Chapter 6 - The Vim Editor
+# Created by Robert van Engelen
+# Distributed under the GPL
+      ;;
+    1) #-------------------- PAGE 1 --------------------
+      show << END-OF-PAGE
+
+
+                    [0;1;34;94m▄▄[0m    [0;1;34;94m▄[0;34m▄[0m  [0;34m▄▄▄[0m   [0;34m▄▄[0m   [0;34m▄▄[0;37m▄▄▄▄[0m   [0;37m▄▄▄[0m  [0;37m▄▄▄[0m 
+                    [0;34m██[0m    [0;34m██[0m  [0;34m███[0m   [0;37m██[0m   [0;37m▀▀██▀▀[0m    [0;1;30;90m██▄▄██[0m  
+                    [0;34m██[0m    [0;34m█[0;37m█[0m  [0;37m██▀█[0m  [0;37m██[0m     [0;1;30;90m██[0m       [0;1;30;90m████[0m   
+                    [0;37m██[0m    [0;37m██[0m  [0;37m██[0m [0;37m██[0m [0;1;30;90m██[0m     [0;1;30;90m██[0m        [0;1;34;94m██[0m    
+                    [0;37m██[0m    [0;37m█[0;1;30;90m█[0m  [0;1;30;90m██[0m  [0;1;30;90m█▄██[0m     [0;1;34;94m██[0m       [0;1;34;94m████[0m   
+                    [0;1;30;90m▀██▄▄██▀[0m  [0;1;30;90m██[0m   [0;1;34;94m███[0m   [0;1;34;94m▄▄██▄▄[0m    [0;34m██[0m  [0;34m██[0m  
+                      [0;1;30;90m▀▀▀▀[0m    [0;1;34;94m▀▀[0m   [0;1;34;94m▀▀▀[0m   [0;1;34;94m▀▀[0;34m▀▀▀▀[0m   [0;34m▀▀▀[0m  [0;34m▀▀▀[0m 
+
+               [0;1;34;94m▄▄▄▄▄▄▄[0;34m▄[0m                      [0;37m▄▄▄▄[0m               
+               [0;34m▀▀▀██▀▀▀[0m                      [0;37m▀[0;1;30;90m▀██[0m               
+                  [0;34m██[0m      [0;37m▄████▄[0m    [0;37m▄█[0;1;30;90m███▄[0m     [0;1;30;90m██[0m      [0;1;34;94m▄▄█████▄[0m 
+                  [0;37m██[0m     [0;37m██▀[0m  [0;1;30;90m▀██[0m  [0;1;30;90m██▀[0m  [0;1;30;90m▀██[0m    [0;1;34;94m██[0m      [0;1;34;94m██▄▄▄▄[0m [0;34m▀[0m 
+                  [0;37m██[0m     [0;1;30;90m██[0m    [0;1;30;90m██[0m  [0;1;30;90m██[0m    [0;1;34;94m██[0m    [0;1;34;94m██[0m       [0;34m▀▀▀▀██▄[0m 
+                  [0;1;30;90m██[0m     [0;1;30;90m▀██▄▄[0;1;34;94m██▀[0m  [0;1;34;94m▀██▄▄██▀[0m    [0;34m██▄▄▄[0m   [0;34m█▄▄▄▄▄█[0;37m█[0m 
+                  [0;1;30;90m▀▀[0m       [0;1;34;94m▀▀▀▀[0m      [0;1;34;94m▀[0;34m▀▀▀[0m       [0;34m▀▀▀▀[0m    [0;37m▀▀▀▀▀▀[0m  
+
+
+                         #!Chapter 6 - The Vim Editor!
+
+
+END-OF-PAGE
+title="Chapter 6 - The Vim Editor"
+if [ -d "$HOME/Courses/COP4342/tmp" ]; then workd=$HOME/Courses/COP4342/tmp; fi
+demo 'cowsay -f turtle "Try the vimtutor program with easy lessons to learn Vim"'
+      ;;
+    2) #-------------------- PAGE 2 --------------------
+      show << END-OF-PAGE
+
+  #!History!
+
+    The standard editor in Unix is *!ed!, which is a simple line-oriented
+    editor that made it difficult to see the context of edits
+    
+    *!ex! has a superset of *!ed! features and a new "visual mode" that is
+    enabled with the editor's command *!:vi!
+    
+    Because visual mode was so popular, the *!vi! command started *!ex! in
+    visual mode and the popular editor *!vi! was "born"
+
+    *!vim! is an improved version of *!vi! with more features, notably multiple
+    levels of undo/redo, and GUI versions for multiple operating systems
+
+    *!vim! still supports the legacy *!ex! since you enter *!ex! mode when you
+    type ^!^Q! (enter command *!:vi! to return to visual mode)
+
+    The strength of *!vim! is for writing code and other text-oriented files;
+    it supports a wide range of editing commands and commands to format code
+
+END-OF-PAGE
+demo 'cowsay "Did you know? diff produces an ed script with editing commands to change an old file into the new file: diff -e oldfile.cpp newfile.cpp"'
+      ;;
+    3) #-------------------- PAGE 3 --------------------
+      show << END-OF-PAGE
+
+  #!Vim modes!
+    !y!┌─────────┐!! ^!i! ^!a! ^!o! ^!r! ^!c!   !g!┌───────────┐!!  
+    !y!│ COMMAND ├────────────▶︎!g!│ INPUT     │!!  ^!i!nsert ^!a!ppend ^!o!pen ^!r!eplace ^!c!hange
+    !y!│ MODE    !g!│◀︎────────────┤ MODE      │!!  ^!I!nsert ^!A!ppend ^!O!pen ^!R!eplace ^!C!hange
+    !y!│         │!!         ^!ESC! !g!└───────────┘!!
+    !y!│         │!! ^!:!           !c!┌───────────┐!!
+    !y!│         ├────────────▶︎!c!│ LAST LINE │  :help FEATURE!!
+    !y!│         │!c!◀︎────────────┤ MODE      │  :set PARAMETER!!
+    !y!│         │!!       ^!ENTER! !c!└───────────┘!!
+    !y!│         │!! ^!/! ^!?!         !m!┌───────────┐!!
+    !y!│         ├────────────▶︎!m!│ SEARCH    │  /REGEX!!
+    !y!│         │!m!◀︎────────────┤ MODE      │  ?REGEX!!
+    !y!│         │!!       ^!ENTER! !m!└───────────┘!!
+    !y!│         │!! ^!Q!           ┌───────────┐
+    !y!│         ├────────────▶︎!!│ EX        │  old ex editor mode
+    !y!│         │!!◀︎────────────┤ MODE      │  enter :vi to return to visual
+    !y!└────┬────┘!!         :vi └───────────┘
+    !y!     │!! ^!ZZ!
+    !y!     ▼!!
+    SAVE & QUIT
+
+END-OF-PAGE
+nodemo
+      ;;
+    4) #-------------------- PAGE 4 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: moving the cursor!
+
+    Cursor motions are specified by a key or key combination which we indicate
+    by !M!M!!; also, a command can be preceded by a number !G!N!!, the "repeat factor"
+
+    Moving the cursor:                      Viewing the work buffer:
+
+    ^!←!/^!h! ^!→!/^!l!/^!SPACE! move by character         !G!N!!!^!G!! go to line !G!N!! (no repeat)
+
+    ^!w! ^!W! ^!b! ^!B! ^!e! ^!E! move by word                ^!H! ^!M! ^!L! to top/middle/bottom window
+
+    ^!↑!/^!k! ^!↓!/^!j! ^!-! ^!ENTER! ^!0! ^!^ ! ^!\$! move by/on line   ^!^D! ^!^U! move by half a window size
+
+    ^!(! ^!)! move by sentence                    ^!^B!/^!PgUp! ^!^F!/^!PgDn! move by window size
+
+    ^!{! ^!}! move by paragraph                   ^!f!!C!x!! ^!F!!C!x!! move to next/prev char !C!x!!
+
+    ^![[! ^!]]! move by section                   ^!t!!C!x!! ^!T!!C!x!! move up to next/prev char !C!x!!
+
+    ^!%! move to matching brace                ^!;! ^!,! repeat f/F/t/T (backwards)
+
+END-OF-PAGE
+nodemo
+      ;;
+    5) #-------------------- PAGE 5 --------------------
+      show << END-OF-PAGE
+
+  #!Input mode!
+
+    !y!┌─────────┐!! ^!i! ^!a! ^!o! ^!r! ^!c!   !g!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!g!│ INPUT     │!!  Vim permits cursor motion ^!←! ^!→! ^!↑! ^!↓!
+    !y!│ MODE    │!g!◀︎────────────┤ MODE      │!!  and mouse in input mode (Vim GUI)
+    !y!└─────────┘!!         ^!ESC! !g!└───────────┘!!
+
+      ^!i! insert before cursor             ^!I! insert before first nonblank
+
+      ^!a! append after cursor              ^!A! append at end of line
+
+      ^!o! open a new line below            ^!O! open a new line above
+
+      ^!r! replace character                ^!R! replace text
+
+      ^!s! substitute character, same as ^!c→! ^!S! substitute line, same as ^!cc!
+
+      ^!c!!M!M!! change text specified by !M!M!!      ^!C! change text to end of line
+
+      ^!cc! change line                     Use ^!^V! to quote special characters
+
+END-OF-PAGE
+nodemo
+      ;;
+    6) #-------------------- PAGE 6 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: changing and deleting text!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    Changing and deleting text:
+
+      ^!c!!M!M!! change text specified by !M!M!!      ^!C! change text to end of line
+
+      ^!cc! change line
+
+      ^!x! erase character at cursor        ^!X! erase character before cursor
+
+      ^!d!!M!M!! delete text specified by !M!M!!      ^!D! delete to the end of the line
+
+      ^!dd! delete line
+
+    For example, ^!cw! changes a word, !G!6!!!^!x!! erases chars and !^!d!!!G!12!!!^!w!! deletes 12 words
+
+END-OF-PAGE
+nodemo
+      ;;
+    7) #-------------------- PAGE 7 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: undo and redo!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    You can undo and redo a change or a number of changes with a repeat factor:
+
+      ^!u! undo a change                    ^!U! restores a line (undo line changes)
+
+      ^!^r! redo a change
+
+    You can undo a ^!U! restore with ^!u! or ^!U! (this can get confusing with ^!CAPS! on)
+
+    As usual, you can use the repeat factor to undo/redo many changes at once
+
+    For example, !G!2!!!^!u!! repeats two undo commands
+
+    The old vi only offers one undo level, so be careful when using the old vi
+
+END-OF-PAGE
+nodemo
+      ;;
+    8) #-------------------- PAGE 8 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: yank+put and copy+paste!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+      ^!y!!M!M!! to yank text specified by !M!M!!     ^!Y! to yank a line
+
+      ^!p! to put text after cursor/line    ^!P! to put text before cursor/line
+
+    Also deleted text with ^!x! ^!d! and ^!D! can be put with ^!p! and ^!P!
+
+    For example, ^!ywP! copies a word in place and ^!ddp! swaps two lines
+
+    Vim GUI also supports copy-paste with the edit menu or the usual
+    copy/cut/paste keys, but uses a different buffer space, which means you
+    have two buffers at your disposal to copy text
+
+END-OF-PAGE
+nodemo
+      ;;
+    9) #-------------------- PAGE 9 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: visually selecting text for a command!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    You can also select text first, then give a command to modify selection:
+
+      ^!v! followed by one or more ^!↑! ^!↓! or other motions !M!M!! to select text
+
+      ^!V! followed by one or more ^!↑! ^!↓! or other motions !M!M!! to select lines
+
+      ^!^V! followed by one or more ^!←! ^!→! ^!↑! ^!↓! or motions !M!M!! to select a block
+
+      Or drag the mouse pointer to select begin and end of text (Vim GUI)
+
+    For example, with the cursor at !B!(!! type ^!v%x! to select and erase !*!!B!(char*)!!:
+
+      *!const char! *name = !!!B!(char*)!!yytext;
+
+END-OF-PAGE
+nodemo
+      ;;
+    10) #-------------------- PAGE 10 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: using markers to move around!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    A particularly useful feature to move around large texts are "markers" that
+    bookmark a position in the text with a letter (letters are recommended)
+
+      ^!m!!C!x!! marks current position with !C!x!!
+
+      ^!\`!!C!x!! moves to position marked !C!x!!      ^!'!!C!x!! moves to the line marked !C!x!!
+
+    Since ^!\`! and ^!'! are cursor motions, you can use them with commands
+    that expect a motion !M!M!!
+
+    For example, to delete 100 lines you can either type ^!100dd! and hope you
+    got the number of lines to delete right or type ^!ma! then go down to the
+    last line to delete and type ^!d'a!
+
+END-OF-PAGE
+nodemo
+      ;;
+    11) #-------------------- PAGE 11 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: miscellaneous commands!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    ^!.! repeat the last command (at the position of the cursor)
+
+    ^!J! join the next line to the end of the current line, when text is
+    visually selected this joins all of their lines into a single line
+
+    ^!gq!!M!M!! format lines by wrapping text to the !c!:set textwidth=WIDTH!!;
+    instead of a motion you can visually select text with ^!V! and type ^!gq!
+
+    ^!~! change case of letter under the cursor
+
+    ^!K! displays the *!man! page of the word under the cursor
+
+    ^!zz! redraw screen and center the screen at the cursor position
+
+END-OF-PAGE
+nodemo
+      ;;
+    12) #-------------------- PAGE 12 --------------------
+      show << END-OF-PAGE
+
+  #!Command mode: code formatting commands for programmers!
+
+    !y!┌─────────┐!!
+    !y!│ COMMAND │!!  Cursor motions are indicated by !M!M!!;
+    !y!│ MODE    │!!  a command can be preceded by a repeat factor !G!N!!
+    !y!└─────────┘!!
+
+    To reformat code indentations when !c!:set cindent!! (or !c!:set smartindent!!)
+    and !c!:set shiftwidth=WIDTH!! parameters are set:
+
+      ^!=!!M!M!! adjust text indentation         ^!==! adjust current line
+
+      ^!>!!M!M!! increase indentation            ^!>>! increase indent of current line
+
+      ^!<!!M!M!! decrease indentation            ^!<<! decrease indent of current line
+
+    For example, place the cursor at a !B!{!! and type ^!V%=! to adjust a block
+    of code from the visually selected opening !B!{!! to the closing !B!}!!
+
+    As always, instead of a motion you can visually select text with ^!V! first
+
+END-OF-PAGE
+nodemo
+      ;;
+    13) #-------------------- PAGE 13 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    The "last line mode" provides the following features:
+
+      Getting help
+      
+      Reading and writing files
+
+      Opening and closing (split) screens
+
+      Setting parameters
+
+      Commands to reformat text and to search and replace text
+
+      Executing shell commands
+
+END-OF-PAGE
+nodemo
+      ;;
+    14) #-------------------- PAGE 14 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: getting help!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :help WORD!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:help!! provides general help, use Vim search mode with ^!/! or ^!?! to search
+    information and select highlighted tags by double clicking (Vim GUI) or
+    by typing ^!^]!
+
+    !c!:help WORD!! to find information on !c!WORD!!
+
+      You can type ^!^D! after !c!:help WORD!! to see a list of related words
+
+    Last line mode has a history, so you can use ^!↑! ^!↓! to view and re-execute
+    previous commands
+
+    ^!ENTER! executes a list line mode command and ^!ESC! quits last line mode
+
+END-OF-PAGE
+nodemo
+      ;;
+    15) #-------------------- PAGE 15 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: reading and writing files!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐  :w!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :q!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :r!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  :sp!!
+
+    !c!:w!! writes (saves) the current file, !c!:w FILE!! saves to a new _!FILE!,
+    you should use !c!:w! FILE!! to overwrite an existing _!FILE!
+
+    !c!:q!! quits, prompting you to save first; use !c!:q! !!to force quit but you
+    will lose all changes!
+
+      Just type ^!ZZ! to save and quit, which is easier and quicker
+
+    !c!:r FILE!! reads _!FILE! and places its contents at the cursor
+
+    !c!:sp!! splits the screen to edit the current file in two windows
+
+    !c!:sp FILE!! opens a split screen to edit _!FILE!
+
+END-OF-PAGE
+nodemo
+      ;;
+    16) #-------------------- PAGE 16 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: using split screens (viewports)!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :sp!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :vs!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  :new!!
+
+    Type window command key ^!^W! followed by another key:
+
+      ^!^W↑! ^!^W↓! ^!^W←! ^!^W→! to move up/down/left/right between split screens
+
+      ^!^Ws! to split the screen horizontally, same as !c!:sp!!
+
+      ^!^Wv! to split the screen vertically, same as !c!:vs!!
+
+      ^!^Wn! to split the screen and start editing a new file, same as !c!:new!!
+
+      ^!^Wq! to close a split the screen, same as !c!:q!! (use ^!ZZ! to save & quit)
+
+    There are many more window commands, see !c!:help CTRL-W!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    17) #-------------------- PAGE 17 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: setting parameters for text formatting!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :set PARAMETER!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:set [no]ai!! (autoindent) to [un]set text indentation
+
+    !c!:set [no]ci!! (cindent) to [un]set code indentation
+
+    !c!:set sw=WIDTH!! (shiftwidth) to set the indentation width
+
+    !c!:set wm=WIDTH!! (wrapmargin) to set text wrap margin, 0 to disable
+
+    !c!:set tw=WIDTH!! (textwidth) to set text width for line breaks, 0 to disable
+
+    !c!:set [no]et!! (expandtab) to [un]set tab expansion, !c!:retab!! to reformat file
+
+    !c!:set [no]st!! (smarttab) to [un]set insertion of !c!shiftwidth!! spaces as tabs
+
+END-OF-PAGE
+nodemo
+      ;;
+    18) #-------------------- PAGE 18 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: setting parameters for searching and matching!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :set PARAMETER!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:set [no]magic!! to [un]set to enable meta-characters . [ ] * in regex
+
+    !c!:set [no]ic!! (ignorecase) to [un]set case insensitive regex search
+
+    !c!:set [no]scs!! (smartcase) to [un]set case insensitive regex search, but smart
+
+    !c!:set [no]is!! (incsearch) to [un]set incremental search from current position
+
+    !c!:set [no]ws!! (wrapscan) to [un]set wrapping of search to begin/end of file
+
+    !c!:set [no]sm!! (showmatch) to [un]set display of matching parenthesis
+
+    !c!:set [no]hls!! (hlsearch) to [un]set highlighting of matches in the file
+
+END-OF-PAGE
+nodemo
+      ;;
+    19) #-------------------- PAGE 19 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: setting parameters to display info!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :set PARAMETER!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:set [no]ru!! (ruler) to [un]set displaying the "ruler"
+
+    !c!:set [no]smd!! (showmode) to [un]set displaying the current Vim mode
+
+    !c!:set [no]nu!! (number) to [un]set line numbers, useful with !c!:set cursorline!!
+
+    !c!:set [no]list!! to [un]set display tabs as ^I and line ends as \$
+
+    !c!:set [no]wrap!! (number) to [un]set wrapping of long lines or to truncate
+
+    !c!:set ls=0|1|2!! (laststatus) to disable (0) or enable (1,2) the status line
+
+    !c!:set report=N!! to report changes when !c!N!! lines are modified
+
+END-OF-PAGE
+nodemo
+      ;;
+    20) #-------------------- PAGE 20 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: setting miscellaneous parameters!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :set PARAMETER!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:set enc=utf8!! (encoding) to set file encoding to UTF-8
+
+    !c!:set ff=dos!! (fileformat) to set file format to DOS
+
+    !c!:set scr=N!! (scroll) to set the ^!^D! and ^!^U! scroll size !c!N!!
+
+    !c!:set sj=N!! (scrolljump) to set the number of lines !c!N!! to show when scrolling
+
+    !c!:set sh=PATH!! (shell) to set the _!PATH! to a shell for !c!:sh!! commands
+
+    !c!:set [no]aw!! (autowrite) to [un]set saving files automatically
+
+    !c!:set [no]cp!! (compatible) to [un]set vi compatibility
+
+END-OF-PAGE
+nodemo
+      ;;
+    21) #-------------------- PAGE 21 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: text formatting commands!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :ce!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :le!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  :ri!!
+
+    !c!:ce [WIDTH]!! to center selected lines, use optional !c!WIDTH!!
+
+    !c!:le [WIDTH]!! to left-align selected lines, use optional !c!WIDTH!!
+
+    !c!:ri [WIDTH]!! to right-align selected lines, use optional !c!WIDTH!!
+
+    Note: to align text, type ^!gq! with a motion or apply to a text selection
+
+END-OF-PAGE
+nodemo
+      ;;
+    22) #-------------------- PAGE 22 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: search and replace text!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :[ADDRESS]s/REGEX/TEXT/[g]!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    !c!:[ADDRESS]s/REGEX/TEXT/[g]!! replace !c!REGEX!! matches by !c!TEXT!!, where !c!ADDRESS!! is:
+
+      !c!N!! a specific line number
+
+      !c!.!! the current line, can be used with an offset !c!.-N!! and !c!.+N!!
+
+      !c!\$!! the last line
+
+      !c!%!! the entire file, same as the range !c!1,\$!!
+
+      !c!'x!! line marked by ^!m!!C!x!! (use !c!'<!! and !c!'>!! for start/end of a visual selection)
+
+      !c!ADDRESS,ADDRESS!! a range, e.g. !c!1,100!! and !c!.,.+9!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    23) #-------------------- PAGE 23 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: search and replace text continued!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :[ADDRESS]s/REGEX/TEXT/[g]!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘!!
+
+    A !c!REGEX!! is composed of the following meta characters:
+
+      !c!.!! matches any character except newline
+
+      !c!* !!zero or more occurrences of a character, e.g. !c!.* !!matches anything
+
+      !c![abc0-9]!! matches a character in the specified character class
+
+      !c!^ \$!! matches the begin/end of a line
+
+      !c!\\< \\>!! matches the begin/end of a word
+
+    For example, !c!:%s/\\<I\\>/we/g!! globally replaces all !c!I!! by !c!we!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    24) #-------------------- PAGE 24 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: executing shell commands!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :sh!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :!COMMAND!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  ! !COMMAND!!
+
+    !c!:sh!! enters a shell, make sure to set a shell e.g. !c!:set sh=/bin/bash!!
+
+    !c!:!COMMAND!! executes !c!COMMAND!! in a shell
+
+    !c!! !COMMAND!! executes !c!COMMAND!! and inserts its standard output
+
+    !c! !!M!M!!!c!COMMAND!! executes shell !c!COMMAND!! with its standard input read
+    from the file specified by the current line up to the motion !M!M!!,
+    replacing the specified lines with the standard output of the command
+
+      Instead of a motion you can visually select text with ^!V! and then
+      type ^!:! or !^! ! !! to enter the selection as a range !c!:'<,'>!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    25) #-------------------- PAGE 25 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: executing shell commands continued!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :sh!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :!COMMAND!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  ! !COMMAND!!
+
+    Examples:
+
+      !c!:1,100!sort!! to sort the first 100 lines
+
+      !c!:w!! then !c!:!gcc -o myprog %; ./myprog!! to compile the file and run it
+
+	You can also use !c!:make!! if you !c!:set makeprg=gcc\\ -omyprog\\ %!! since
+	!c!%!! expands into the file name, and then !c!:!./myprog!! to run it 
+
+      !c!:w!! then !c!:!ispell %!! and !c!:!e %!! the old way of checking spelling
+      with *!ispell!, but you should use the built-in spelling checker with
+      !c!:setlocal spell spelllang=en_us!! (set spelling local to the window)
+      and move to the next misspelled word with ^!]s! and the previous with ^![s!
+
+END-OF-PAGE
+nodemo
+      ;;
+    26) #-------------------- PAGE 26 --------------------
+      show << END-OF-PAGE
+
+  #!Last line mode: miscellaneous commands!
+
+    !y!┌─────────┐!! ^!:!           !c!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!c!│ LAST LINE │  :N!!
+    !y!│ MODE    │!c!◀︎────────────┤ MODE      │  :map KEY MACRO!!
+    !y!└─────────┘!!       ^!ENTER! !c!└───────────┘  :abbrev KEYS TEXT!!
+
+    !c!:N!! go to line number !c!N!!, same as !G!N!!!^!G!!
+
+    !c!:map KEY MACRO!! defines a binding for !c!KEY!! to execute !c!MACRO!! commands
+
+    !c!:abbrev KEYS TEXT!! defines input mode shortcut !c!KEYS!! to insert !c!TEXT!!
+
+    !c!:syntax on!! enables syntax highlighting (this is best used in _!.vimrc!)
+
+    !c!:set spell!! enables spelling checker
+
+    !c!:set spelllang=en_us!! sets spelling language to US English
+
+END-OF-PAGE
+nodemo
+      ;;
+    27) #-------------------- PAGE 27 --------------------
+      show << END-OF-PAGE
+
+  #!Search mode!
+
+    !y!┌─────────┐!! ^!/! ^!?!         !m!┌───────────┐!!
+    !y!│ COMMAND ├────────────▶︎!m!│ SEARCH    │  /REGEX!!
+    !y!│ MODE    │!m!◀︎────────────┤ MODE      │  ?REGEX!!
+    !y!└─────────┘!!       ^!ENTER! !m!└───────────┘!!
+
+    !m!/REGEX!! searches for matching text from the current line down
+
+    !m!?REGEX!! searches for matching text from the current line up
+
+    Type ^!n! in command mode to find the next match, same as !m!/!!!^!ENTER!!
+
+    Type ^!N! in command mode to find the previous match, same as !m!?!!!^!ENTER!!
+
+    The !m!REGEX!! syntax is the same as !c!REGEX!! in the !c!s/REGEX/TEXT/!! command
+
+END-OF-PAGE
+nodemo
+      ;;
+    28) #-------------------- PAGE 28 --------------------
+      show << END-OF-PAGE
+
+  #!Vim and ctags!
+
+    *!ctags! is a utility that takes a set of C/C++ source code files as input
+    to create a tags file
+      
+      *!ctags FILE1 FILE2 ...!
+
+    The tags file contains information about each function and macro, such as
+    the object name, the file in which the object is defined, a pattern
+    describing the location of the object in the source code
+
+    Use *!vim -t NAME! to open Vim at the location of the *!NAME!, which is a
+    function or macro name, for example:
+
+      *!ctags myfile.c!
+      *!vim -t main!    # open vim at the location of main() in myfile.c
+
+    To jump to the function definition in the source code file press ^!^]!
+    (^!^W! ^!^]! to split window) while the cursor is located over the function
+    name, which may let you jump to another file to edit, jump back with ^!^T! 
+
+END-OF-PAGE
+cat > $workd/ch6_demo_myfile.c << EOF
+#include <stdio.h>
+void foo(void);
+void bar(void);
+int main(int argc, char *argv[])
+{
+  foo();
+}
+void foo()
+{
+  printf("Hello ");
+  bar();
+}
+void bar()
+{
+  printf("world!\n");
+}
+EOF
+demo 'cat ch6_demo_myfile.c' 'ctags ch6_demo_myfile.c' 'cat tags' 'vim -t foo'
+      ;;
+    29) #-------------------- PAGE 29 --------------------
+      show << END-OF-PAGE
+
+  #!The .vimrc startup file!
+
+    Create a _!.vimrc! startup file in your home directory and add the Vim
+    parameters that you generally want to use
+
+    For example:
+    !*!
+      set ruler
+      set number
+      set cursorline
+      set hlsearch
+      set cindent
+      set smartcase
+      set autoindent shiftwidth=2
+      set encoding=utf8
+      syntax on
+      color DarkBlue
+      set spell spelllang=en_us
+    !!
+END-OF-PAGE
+nodemo
+      ;;
+    30) #-------------------- PAGE 30 --------------------
+      show << END-OF-PAGE
+
+  #!References!
+
+    Vim quick reference cards:
+
+      !m!http://tnerual.eriogerg.free.fr/vimqrc.pdf!!
+
+      !m!https://michaelgoerz.net/refcards/vimqrc.pdf!!
+
+      There are a lot more online when you Google them, pick one you like best
+
+    Vimbook tutorial:
+
+      !m!ftp://ftp.vim.org/pub/vim/doc/book/vimbook-OPL.pdf!!
+
+    Vim Tagbar plugin:
+
+      !m!http://www.vim.org/scripts/script.php?script_id=3465!!
+
+    Doing a lot with Vim without plugins YouTube video:
+
+      !m!https://www.youtube.com/watch?v=XA2WjJbmmoM!!
+
+END-OF-PAGE
+nodemo
+      ;;
+    31) #-------------------- PAGE 31 --------------------
+      show << END-OF-PAGE
+
+  #!Additional info!
+
+    Try the *!vimtutor! program
+
+  #!Other popular editors!
+
+    Vim is a popular editor, and one of the few choices you may have on a plain
+    Linux install, but there are other editors you can install and use such as:
+
+      gVim and MacVim: GUI versions of Vim
+
+      gEdit: a simple GUI editor
+
+      Nano and Pico: simple text editors
+
+      Atom: an open source editor with lots of packages
+
+      Sublimetext: a popular proprietary editor
+
+      Emacs: we will cover this editor in Chapter 7
+
+END-OF-PAGE
+nodemo
+      ;;
+    *) #-------------------- END --------------------
+      page=31
+      ;;
+  esac
+done
