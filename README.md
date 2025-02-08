@@ -14,7 +14,7 @@ I wrote this series of lectures for undergraduate computer science students in 2
 
 - download this repo and change dir to the `learn` directory
 - execute `./ch1.pages` to view the first chapter
-- if the TUI screen looks garbled, then exit the TUI and make sure your `TERM` environment variable is set to `ansi` or `xterm` by executing `export TERM=ansi` in bash or`setenv TERM ansi` in csh or tcsh
+- if the TUI screen looks garbled, then exit the TUI by pressing `q` and make sure your `TERM` environment variable is set to `ansi` or `xterm` by executing `export TERM=ansi` in bash or`setenv TERM ansi` in csh or tcsh
 
 There is a TUI script for each chapter and subject:
 
@@ -33,13 +33,15 @@ There is a TUI script for each chapter and subject:
 | `ch15.pages` | 15 - how to use SED    |
 | `gdb.pages`  | extra - how to use GDB |
 
-Some TUI pages include demos.  These are "easter eggs" that run when you press `d` for `demo`.  If nothing happens, then the current TUI screen does not have a demo.
+Some TUI pages include demos.  These are "easter eggs" that run when you press `d` for `demo`.
+
+Pressing `u` for `update` does not work, because the course materials are no longer posted online where `wget` expects them.
 
 ## How does it work?
 
-A Makefile that executes a `gen-pages` AWK script converts annotated `.txt` files to `.pages` bash scripts that each drive a TUI.  There is no need to generate `.pages` scripts from `.txt` sources, unless you want to update or generate new scripts.
+A Makefile executes a `gen-pages` AWK script that converts annotated `.txt` files to `.pages` bash scripts that each drive a TUI.  There is no need to generate `.pages` scripts from `.txt` sources, unless you want to update or generate new scripts.
 
-The `gen-pages` AWK script uses `pre-pages` as a common prelude script.  The `pre-pages` prelude can be changed to update the TUI screen for all presentations by rebuilding the `.pages` scripts.
+The `gen-pages` AWK script uses `pre-pages` as a common prelude script.  The `pre-pages` prelude can be changed to update the TUI layout and functionality for all presentations by rebuilding the `.pages` scripts.
 
 The `demo.txt` demo pages source explains how the `.txt` source files are annotated to produce the `demo.pages` script that shows how colors and other TUI artifacts are created.
 
