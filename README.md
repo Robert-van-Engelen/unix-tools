@@ -4,7 +4,7 @@ The presentation notes are a little bit different than usual.  No powerpoint.  N
 
 Instead, the interactive TUI presentations are all scripted in bash itself to run on your Unix or Linux machine.
 
-Learning should be enjoyable.  I also had a hack of a lot of fun creating this stuff.
+Learning should be enjoyable.  I also had a heck of a lot of fun creating this stuff.
 
 This is what the opening TUI looks like when you run it with `./ch1.pages`:
 
