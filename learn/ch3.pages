@@ -484,7 +484,7 @@ nodemo
       *!$ alias l="ls -CF"! (bash)          *!% alias l "ls -CF"! (tcsh)
 
 END-OF-PAGE
-demo 'wget -q -O - http://www.cs.fsu.edu/~engelen/courses/COP4342/LSCOLORS.txt'
+demo 'more LSCOLORS.txt'
       ;;
     8) #-------------------- PAGE 8 --------------------
       show << END-OF-PAGE

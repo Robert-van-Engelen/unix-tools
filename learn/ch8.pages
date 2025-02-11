@@ -675,7 +675,7 @@ demo 'env' 'set'
     *!CDPATH! alternative paths for *!cd!, each pathname is separated by a ':'
 
 END-OF-PAGE
-demo 'PS1="\u@\h:\w [\!]$ "' 'wget -q -O - http://www.cs.fsu.edu/~engelen/courses/COP4342/PS1.txt'
+demo 'PS1="\u@\h:\w [\!]$ "' 'more PS1.txt'
       ;;
     16) #-------------------- PAGE 16 --------------------
       show << END-OF-PAGE
