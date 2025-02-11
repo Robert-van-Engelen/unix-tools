@@ -3,11 +3,11 @@
 # Created by Robert van Engelen
 # Distributed under the GPL
 
-theme=1     # default theme
-shell=bash  # shell to use for demos (bash or tcsh)
-workd="."   # work directory to use for shell demos
+theme=1       # default theme (1 to 5)
+shell=bash    # shell to use for demos (bash or tcsh)
+workd="./tmp" # work directory to use for shell demos
 title="Welcome back $USER" # title of the presentation (<40 chars)
-wsite="http://www.cs.fsu.edu/~engelen/courses/COP4342" # web site with ch*.pages
+wsite="https://raw.githubusercontent.com/Robert-van-Engelen/unix-tools/refs/heads/main/learn" # web site with ch*.pages
 
 #====================
 
@@ -90,7 +90,7 @@ function navigate() {
     u)
       echo
       read -n1 -p "Download update (y/n)? " key < /dev/tty
-      if [ $key = "y" ]; then
+      if [ "$key" = "y" ]; then
         if which wget; then
           echo "Saved old $0 as $0.old"
           mv -f $0 $0.old
@@ -201,20 +201,20 @@ function demo() {
         printf "\n\e[1m$ "
         echo -n $1
         printf "\e[0m\n"
-        echo "$1" > ~/.bash_history
+        echo "$1" >> ~/.bash_history
         bash -c "$1"
       else
         printf "\n\e[1m%% "
         echo -n $1
         printf "\e[0m\n"
-        echo "$1" > ~/.history
+        echo "$1" >> ~/.history
         echo "$1" | tcsh
       fi
       navigate
     else
       printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
       if [ "$sh" = "bash" ]; then
-        cat /dev/null > ~/.bash_history
+        echo >> ~/.bash_history
         echo "$ history"
         while [ $# -ne 0 ]; do
           echo "$1" >> ~/.bash_history
@@ -223,7 +223,7 @@ function demo() {
         done
         PS1="$ " PS2="> " bash -i < /dev/tty
       else
-        cat /dev/null > ~/.history
+        echo >> ~/.history
         echo "% history"
         while [ $# -ne 0 ]; do
           echo "$1" >> ~/.history

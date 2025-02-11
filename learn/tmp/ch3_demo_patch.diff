@@ -1,0 +1,8 @@
+--- ch3_demo_oldfile.cpp	2018-02-14 16:09:45.000000000 -0500
++++ ch3_demo_newfile.cpp	2018-02-14 16:09:45.000000000 -0500
+@@ -2,4 +2,5 @@
+ int main()
+ {
+   std::cout << "Hello world" << std::endl;
++  exit(EXIT_SUCCESS);
+ }
