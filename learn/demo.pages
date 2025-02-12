@@ -567,7 +567,7 @@ demo bash 'x=1' 'echo $x'
 
     This example uses *!\$(wget -q -O - "URL")! to display online content:
 
-    !m!http://www.cs.fsu.edu/~engelen/courses/COP4342/demowebpage.txt!! says:
+    !m!$wsite/tmp/demowebpage.txt!! says:
 
 ${demowebpage:=$(wget -q -O - "$wsite/tmp/demowebpage.txt")}
 
