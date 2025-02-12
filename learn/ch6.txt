@@ -85,7 +85,7 @@ ________________________________________________________________________________
     Cursor motions are specified by a key or key combination which we indicate
     by !M!M!!; also, a command can be preceded by a number !G!N!!, the "repeat factor"
 
-    Moving the cursor:                      Viewing the work buffer:
+    Moving the cursor (= motions !M!M!!)         Viewing the work buffer:
 
     ^!←!/^!h! ^!→!/^!l!/^!SPACE! move by character         !G!N!!!^!G!! go to line !G!N!! (no repeat)
 
