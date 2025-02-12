@@ -3,9 +3,10 @@
 # Created by Robert van Engelen
 # Distributed under the GPL
 
-theme=1       # default theme (1 to 5)
-shell=bash    # shell to use for demos (bash or tcsh)
-workd="./tmp" # work directory to use for shell demos
+theme=1           # default theme (1 to 5)
+shell=bash        # shell to use for demos (bash or tcsh)
+workd="./tmp"     # work directory to use for shell demos
+histf=".temphist" # temporary bash history file (tcsh uses ~/.history)
 title="Welcome back $USER" # title of the presentation (<40 chars)
 wsite="https://raw.githubusercontent.com/Robert-van-Engelen/unix-tools/refs/heads/main/learn" # web site with ch*.pages
 
@@ -75,7 +76,7 @@ function navigate() {
         pushd . > /dev/null
       fi
       if [ "$shell" = "bash" ]; then
-        PS1="$ " PS2="> " bash -i < /dev/tty
+        HISTFILE="$histf" PS1="$ " PS2="> " bash -i < /dev/tty
       else
         tcsh -i < /dev/tty
       fi
@@ -197,34 +198,28 @@ function demo() {
       printf "\n\e[31mCannot chdir to $workd - not a valid directory: set cwd in options menu\e[0m"
     fi
     if [ $# -eq 1 ]; then
+      printf "\n\e[1m$ "
+      echo -n $1
+      printf "\e[0m\n"
       if [ "$sh" = "bash" ]; then
-        printf "\n\e[1m$ "
-        echo -n $1
-        printf "\e[0m\n"
-        echo "$1" >> ~/.bash_history
-        bash -c "$1"
+        echo "$1" >> "$histf"
+        HISTFILE="$histf" bash -c "$1"
       else
-        printf "\n\e[1m%% "
-        echo -n $1
-        printf "\e[0m\n"
         echo "$1" >> ~/.history
         echo "$1" | tcsh
       fi
       navigate
     else
       printf "\r\e[${bcolor}m%80s\e[0m\n" "Move cursor up to demo history, or use !NUM, ^D to exit when done with $sh"
+      echo "$ history"
       if [ "$sh" = "bash" ]; then
-        echo >> ~/.bash_history
-        echo "$ history"
         while [ $# -ne 0 ]; do
-          echo "$1" >> ~/.bash_history
+          echo "$1" >> "$histf"
           echo "    $1"
           shift
         done
-        PS1="$ " PS2="> " bash -i < /dev/tty
+        HISTFILE="$histf" PS1='$ ' PS2='> ' bash -i < /dev/tty
       else
-        echo >> ~/.history
-        echo "% history"
         while [ $# -ne 0 ]; do
           echo "$1" >> ~/.history
           echo "    $1"
