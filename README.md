@@ -10,9 +10,9 @@ This is what the opening TUI looks like when you run it with `./ch1.pages`:
 
 ![TUI](UNIXToolsScreenShot.png)
 
-Some TUI screens include demos and "easter eggs" that run when you press `d` for `demo`.
+Some TUI screens include demos and "easter eggs" that run when you press `d` for `demo`.  The demos run in a shell in the `learn/tmp` directory and use the history mechanism.  This is done so that instructors can easily execute the commands from history while explaining.
 
-Pressing `u` for `update` does not work, because the course materials are no longer posted online where `wget` expects them.
+Pressing `u` for `update` fetches the current pages file from GitHub.  The idea is to allow students to update the presentation when the instructor made changes to it.  If you are an instructor and want to create your own pages, then change `wsite` in `pre-pages` to point to a location from where your `.pages` files can be retrieved.
 
 ## Viewing and interacting with the TUI presentations
 
