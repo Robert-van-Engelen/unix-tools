@@ -388,9 +388,9 @@ ________________________________________________________________________________
 
       ^!^W↑! ^!^W↓! ^!^W←! ^!^W→! to move up/down/left/right between split screens
 
-      ^!^Ws! to split the screen horizontally, same as !c!:sp!!
+      ^!^Ws! to split the screen vertically, same as !c!:sp!!
 
-      ^!^Wv! to split the screen vertically, same as !c!:vs!!
+      ^!^Wv! to split the screen horizontally, same as !c!:vs!!
 
       ^!^Wn! to split the screen and start editing a new file, same as !c!:new!!
 
