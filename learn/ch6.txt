@@ -46,7 +46,7 @@ ________________________________________________________________________________
     levels of undo/redo, and GUI versions for multiple operating systems
 
     *!vim! still supports the legacy *!ex! since you enter *!ex! mode when you
-    type ^!^Q! (enter command *!:vi! to return to visual mode)
+    type ^!Q! (enter command *!:vi! to return to visual mode)
 
     The strength of *!vim! is for writing code and other text-oriented files;
     it supports a wide range of editing commands and commands to format code
