@@ -4,7 +4,6 @@
 # Autotools
 .deps/
 .dirstamp
-Makefile
 autom4te.cache
 config.h
 config.h.in~
