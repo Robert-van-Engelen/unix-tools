@@ -695,7 +695,7 @@ demo bash 'gcc -o ch5_demo_catcho ch5_demo_catcho.c' './ch5_demo_catcho -f ch5_d
       ^!^K!  delete to the end of the line        ^!^E!  move to the end of the line
 
       Note: ^!^V! denotes CONTROL-V and ^!⌥?! denotes ALT-? or META-?, which is
-      OPTION-? on Mac OS X with Terminal preferences set to map OPTION to ALT
+      OPTION-? on MacOS with Terminal preferences set to map OPTION to ALT
 
 END-OF-PAGE
 demo 'man 3 readline'

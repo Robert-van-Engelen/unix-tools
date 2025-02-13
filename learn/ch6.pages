@@ -821,9 +821,9 @@ nodemo
 
     !c!:set enc=utf8!! (encoding) to set file encoding to UTF-8
 
-    !c!:set ff=dos!! (fileformat) to set file format to DOS
+    !c!:set ff=dos!! (fileformat) to set file format to DOS !c!:set ff=unix!! to Unix
 
-    !c!:set scr=N!! (scroll) to set the ^!^D! and ^!^U! scroll size !c!N!!
+    !c!:set scr=N!! (scroll) to set the ^!^D! and ^!^U! scroll size to !c!N!!
 
     !c!:set sj=N!! (scrolljump) to set the number of lines !c!N!! to show when scrolling
 

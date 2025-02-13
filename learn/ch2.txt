@@ -287,7 +287,7 @@ ________________________________________________________________________________
 
   #!Installing and updating packages!
 
-    Mac OS X MacPorts !m!https://www.macports.org!!
+    MacOS MacPorts !m!https://www.macports.org!!
 
       Install package *!NAME! with *!sudo port install NAME! and update installed
       packages with *!sudo port upgrade outdated!
@@ -295,7 +295,7 @@ ________________________________________________________________________________
       List package *!NAME! with *!port list NAME! and list all with *!port list!,
       but you may need to run *!sudo port selfupdate! to update MacPorts first
 
-    Mac OS X homebrew !m!https://brew.sh!!
+    MacOS homebrew !m!https://brew.sh!!
 
       Install packages with *!brew install NAME! and update installed packages
       with *!brew upgrade NAME!
@@ -417,7 +417,7 @@ ________________________________________________________________________________
 
     *!uptime! displays system load and duration information
 
-    *!free! displays memory usage information (not on Mac OS X)
+    *!free! displays memory usage information (not on MacOS)
 
     *!df! displays free disk space
 
@@ -448,7 +448,7 @@ ________________________________________________________________________________
     (ASCII 0) byte and the "/" (ASCII 47)
 
     Filenames are by default case sensitive, though some file systems are not
-    case sensitive such as the default filesystem HFS+ of Mac OS X
+    case sensitive such as the default filesystem HFS+ of MacOS
 
     Periods are generally used for filename extensions, but are not special
 

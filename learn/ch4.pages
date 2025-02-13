@@ -386,7 +386,7 @@ demo 'tree -d -L 2 / || cowsay "This demo uses tree but there is no tree, instal
 
     This means that drives are located on the tree
 
-      Unix/Linux             Mac OS X
+      Unix/Linux             MacOS
 
       /                      /
       ├── bin                ├── bin
@@ -669,7 +669,7 @@ nodemo
     This used to mean that the file when executed should remain in the swap
     area of the disk after termination
 
-    Now used as a "restricted deletion flag" in Linux and Mac OS X
+    Now used as a "restricted deletion flag" in Linux and MacOS
 
     Files with the sticky bit set can only be deleted by a user with root
     privileges or by a user who owns the file and can modify the directory
@@ -693,7 +693,7 @@ nodemo
 
       Linux *!setfacl! and *!getfacl! to set/get ACLs
 
-      Mac OS X *!chmod +a!, *!chmod -a! and *!chmod =a!
+      MacOS *!chmod +a!, *!chmod -a! and *!chmod =a!
 
 END-OF-PAGE
 nodemo
@@ -787,7 +787,7 @@ nodemo
     21) #-------------------- PAGE 21 --------------------
       show << END-OF-PAGE
 
-  #!Mac OS X ACLs!
+  #!MacOS ACLs!
 
     *!chmod +a "USER allow|deny PERMISSIONS" FILE1 FILE2 ...! sets *!PERMISSIONS!
     (read, write, append, and/or execute) for *!USER! to access files

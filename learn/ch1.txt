@@ -71,7 +71,7 @@ ________________________________________________________________________________
 
     • History of Unix
     
-    • Unices: GNU-Linux, Linux, Berkeley Unix, Unix System V, Mac OS X
+    • Unices: GNU-Linux, Linux, Berkeley Unix, Unix System V, MacOS
 
     • Overview of Linux
 
@@ -127,7 +127,7 @@ ________________________________________________________________________________
     Berkeley UNIX (BSD stands for Berkeley Software Distribution) developed at
     UC Berkeley with many popular changes and additions
 
-    Mac OS X is based on a version of BSD called Darwin
+    MacOS is based on a version of BSD called Darwin
 
     Other major versions are UNIX System V (SVR4), Solaris, HP-UX, IBM AIX, QNX
 

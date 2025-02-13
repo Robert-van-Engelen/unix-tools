@@ -372,8 +372,8 @@ demo 'cowsay -f turtle "Other shells are OK too"'
     *!tcsh! an expanded version of *!csh! with many new features such as command
     and file completion
     
-    It is recommended to use *!csh! or *!tcsh! as command line shells, but use
-    *!bash! or *!dash! for shell scripts, i.e. to execute shell programs
+    Some prefer to use *!tcsh! as the interactive command line shell, but generally
+    use *!bash! or *!dash! for shell scripts, i.e. to execute shell programs
 
 END-OF-PAGE
 demo 'cowsay -f turtle "csh is like C but totally different"'
@@ -393,7 +393,7 @@ demo 'cowsay -f turtle "csh is like C but totally different"'
 
       Shell: /bin/bash
 
-    On Mac OS X you can change the shell with the Terminal program Preferences
+    On MacOS you can change the shell with the Terminal program Preferences
     Profiles, then select Shell Startup Run command
 
 END-OF-PAGE

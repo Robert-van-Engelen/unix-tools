@@ -49,7 +49,7 @@ ________________________________________________________________________________
     *!GDB!: the GNU project debugger (comes with the GNU compilers),
     the GDB home page is at !m!https://www.gnu.org/software/gdb!!
 
-    *!LLDB!: the LLVM debugger (comes with clang, e.g. on Mac OS X),
+    *!LLDB!: the LLVM debugger (comes with clang, e.g. on MacOS),
     the LLDB home page is at !m!https://lldb.llvm.org!!
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
